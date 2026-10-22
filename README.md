@@ -1,46 +1,23 @@
-# Umrah Track Pro OCR — نسخة محسّنة
+# OCR Document Extraction API (v3)
 
-هذه النسخة تحسّن رفع الوثائق، استخراج النصوص، معالجة الأخطاء، وواجهة عرض النتائج. لا تحتوي على نظام إدارة معتمرين أو سجل مركزي، التزامًا بطلب المستخدم.
+## What changed
+- Uses image enhancement and multiple Tesseract page-segmentation modes.
+- Prefers Arabic + English OCR when both language packs are installed.
+- Reads selectable PDF text and OCRs scanned pages.
+- Extracts values only when a field label supports them; no arbitrary long-number fallback.
+- Normalizes Arabic/Persian digits and common punctuation.
+- Adds upload size/page limits and clearer HTTP errors.
+- Frontend displays server-parsed fields instead of running a second, conflicting regex parser.
+- Includes `/health` endpoint for checking Tesseract language availability.
 
-## الملفات
-- `main.py`: خدمة FastAPI لاستخراج النصوص من PDF والصور وتحليل الحقول.
-- `index.html`: واجهة عربية متجاوبة.
-- `requirements.txt`: مكتبات Python.
-- `apt.packages`: حزم نظام Render المطلوبة لتشغيل Tesseract مع العربية والإنجليزية.
+## Run locally
+```bash
+pip install -r requirements.txt
+uvicorn main:app --host 0.0.0.0 --port 8000
+```
+Tesseract and its Arabic/English language data must also be installed. On Render, `apt.packages` installs these packages where supported by the build environment.
 
-## التشغيل محليًا
-1. ثبّت Tesseract OCR وبيانات اللغتين العربية والإنجليزية على النظام.
-2. ثبّت مكتبات Python:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. شغّل الخادم:
-   ```bash
-   uvicorn main:app --host 0.0.0.0 --port 8000
-   ```
-4. افتح `index.html` في المتصفح واضبط رابط الخادم إلى `http://localhost:8000`.
+## Important limitations
+OCR cannot guarantee perfect extraction on every scan, font, layout, or low-quality image. This version intentionally returns `غير متاح` when a field cannot be linked reliably to its label rather than guessing. Always compare extracted values with the original document. Classification is not verification of document authenticity.
 
-## إعداد Render
-- Build/runtime يعتمد على `requirements.txt` و`apt.packages`.
-- أمر التشغيل المقترح:
-  ```bash
-  uvicorn main:app --host 0.0.0.0 --port $PORT
-  ```
-- متغيرات البيئة الاختيارية:
-  - `ALLOWED_ORIGINS`: قائمة أصول الواجهة مفصولة بفواصل، مثال `https://your-site.netlify.app`. القيمة الافتراضية `*` لتسهيل أول تشغيل، ويفضل تعيين نطاق الواجهة في الإنتاج.
-  - `MAX_FILE_BYTES`: الحد الأقصى لحجم الملف بالبايت، افتراضيًا 15 MiB.
-  - `MAX_PDF_PAGES`: أقصى عدد صفحات PDF، افتراضيًا 30.
-  - `OCR_DPI`: دقة تحويل صفحات PDF إلى صور، افتراضيًا 250.
-  - `OCR_LANG`: لغات Tesseract، افتراضيًا `ara+eng`.
-
-## نقاط النهاية
-- `GET /`: حالة الخدمة وإصدارها.
-- `GET /health`: فحص الصحة.
-- `POST /extract-document/`: رفع مستند واستخراج النص والحقول.
-
-## حدود مهمة
-- OCR واستخراج الحقول تقريبيان وقد يخطئان؛ يجب مراجعة الاسم والأرقام والتواريخ مقابل المستند الأصلي.
-- هذا النظام لا يتحقق من أصالة التأشيرة أو التذكرة، ولا يتصل بمنصة حكومية.
-- حد الحجم وعدد صفحات PDF يخففان مخاطر الملفات الكبيرة، لكن يلزم كذلك مراقبة موارد الخادم وحمايته.
-- لا ترفع وثائق حقيقية حساسة إلى بيئة عامة دون صلاحيات وصول وسياسة حفظ وحذف مناسبة.
-- `ALLOWED_ORIGINS=*` مناسب للاختبار فقط؛ حدده إلى نطاق الواجهة عند النشر.
+CORS is permissive for ease of deployment; restrict `allow_origins` to your actual frontend domain before using real personal documents. The app does not store uploaded files, and does not implement a central passenger registry or automatic notification scheduler.
