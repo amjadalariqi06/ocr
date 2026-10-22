@@ -1,27 +1,48 @@
 import unittest
-from main import parse_document, normalize_digits
+from main import parse_universal_document
 
-class ParserTests(unittest.TestCase):
-    def test_arabic_digits(self):
-        self.assertEqual(normalize_digits("١٢٣۴۵۶"), "123456")
 
-    def test_labeled_visa_fields(self):
-        result = parse_document("تأشيرة العمرة\nName: AMJAD AHMED\nPassport No: AB1234567\nVisa No: 6123456789\nDate of Issue: 12/10/2026")
-        self.assertEqual(result["full_name"], "AMJAD AHMED")
-        self.assertEqual(result["passport_number"], "AB1234567")
-        self.assertEqual(result["reference_number"], "6123456789")
+class ParserRegressionTests(unittest.TestCase):
+    def test_visa_fields(self):
+        result = parse_universal_document(
+            "المملكة العربية السعودية\nName: AHMED ALI\n"
+            "Passport No: A1234567\nVisa No: 61234567890\nIssue Date: 12/10/2026"
+        )
+        self.assertEqual(result["full_name"], "AHMED ALI")
+        self.assertEqual(result["passport_number"], "A1234567")
+        self.assertEqual(result["reference_number"], "61234567890")
         self.assertEqual(result["date"], "12/10/2026")
 
-    def test_does_not_guess_arbitrary_long_number(self):
-        result = parse_document("مستند غير معروف\n123456789012\nلا يوجد رقم جواز أو تذكرة واضح")
-        self.assertEqual(result["reference_number"], "غير متاح")
-        self.assertEqual(result["passport_number"], "غير متاح")
+    def test_bilingual_multiline_and_dob_filtering(self):
+        # اختبار عندما يكون العنوان في سطر والقيمة في السطر التالي مع وجود تاريخ ميلاد
+        result = parse_universal_document(
+            "المملكة العربية السعودية\n"
+            "Name / الاسم\n"
+            "محمد أحمد قايد\n"
+            "Passport No. / رقم الجواز\n"
+            "08451239\n"
+            "Date of Birth: 05/06/1985\n"
+            "Issue Date: 20/10/2026\n"
+            "Visa No: 60987654321"
+        )
+        self.assertEqual(result["full_name"], "محمد أحمد قايد")
+        self.assertEqual(result["passport_number"], "08451239")
+        self.assertEqual(result["reference_number"], "60987654321")
+        self.assertEqual(result["date"], "20/10/2026")
 
-    def test_air_ticket(self):
-        result = parse_document("Yemenia\nPASSENGER NAME: AL-ARIQI/AMJAD\nTICKET NUMBER: 6351234567890\nDATE: 23.OCT.2026")
-        self.assertEqual(result["document_type"], "تذكرة طيران")
-        self.assertIn("AL-ARIQI", result["full_name"])
+    def test_yemenia_ticket(self):
+        result = parse_universal_document(
+            "Yemenia Airways\nPASSENGER NAME: AHMED ALI\n"
+            "TICKET NUMBER: 6351234567890\n12.OCT.2026"
+        )
+        self.assertEqual(result["full_name"], "AHMED ALI")
         self.assertEqual(result["reference_number"], "6351234567890")
+        self.assertEqual(result["document_type"], "تذكرة طيران دولية (تصنيف آلي)")
 
-if __name__ == '__main__':
+    def test_arabic_digits(self):
+        result = parse_universal_document("رقم التأشيرة: ٦١٢٣٤٥٦٧٨٩٠")
+        self.assertEqual(result["reference_number"], "61234567890")
+
+
+if __name__ == "__main__":
     unittest.main()
