@@ -836,6 +836,105 @@ def parse_universal_document(raw_text: str, reverse_arabic="auto") -> dict:
 # OCR + endpoint
 # ---------------------------------------------------------------------------
 
+PDF_ENGLISH_LABELS = {
+    "Visa No.": "Visa No",
+    "Date of Issue": "Date of Issue",
+    "Valid Until": "Valid Until",
+    "Duration of Stay": "Duration of Stay",
+    "Passport No.": "Passport No",
+    "Place of issue": "Place of issue",
+    "Name": "Name",
+    "Birth Date": "Birth Date",
+    "Nationality": "Nationality",
+    "Type Of Visa": "Type Of Visa",
+    "Umrah Operator": "Umrah Operator",
+    "External Agent": "External Agent",
+    "Application No.": "Application No",
+}
+
+
+def _is_latin_token(token: str) -> bool:
+    return bool(re.search(r"[A-Za-z]", token or ""))
+
+
+def _is_arabic_token(token: str) -> bool:
+    return bool(AR_RE.search(token or ""))
+
+
+def _order_pdf_value(words) -> str:
+    """Order value words while respecting RTL Arabic runs inside LTR values."""
+    ordered = sorted(words, key=lambda w: w[0])
+    out = []
+    i = 0
+    while i < len(ordered):
+        j = i + 1
+        kind = _is_arabic_token(ordered[i][4])
+        while j < len(ordered) and _is_arabic_token(ordered[j][4]) == kind:
+            j += 1
+        run = ordered[i:j]
+        if kind:
+            run = list(reversed(run))
+        out.extend(w[4] for w in run)
+        i = j
+    return " ".join(out)
+
+
+def extract_pdf_layout_text(page) -> str:
+    """Rebuild labelled PDF rows from word coordinates.
+
+    Chromium-generated Arabic visa PDFs expose words in visual RTL order.
+    Reading the plain text stream therefore produces values such as
+    ``عقيلName علي``. Coordinates preserve the actual three-column layout:
+    English label on the left, value in the middle, Arabic label on the right.
+    """
+    words = page.get_text("words")
+    if not words:
+        return ""
+    rows = []
+    for word in sorted(words, key=lambda w: (w[1], w[0])):
+        if not rows or abs(word[1] - rows[-1][0]) > 7:
+            rows.append([word[1], [word]])
+        else:
+            rows[-1][1].append(word)
+
+    lines = []
+    pending_label = None
+    for _, row in rows:
+        row = sorted(row, key=lambda w: w[0])
+        latin_left = [w for w in row if w[0] < 300 and _is_latin_token(w[4])]
+        latin_label = " ".join(w[4] for w in latin_left)
+        matched = None
+        for label, canonical in PDF_ENGLISH_LABELS.items():
+            if label.lower() in latin_label.lower():
+                matched = canonical
+                break
+
+        if matched:
+            label_words = latin_left
+            value_words = [w for w in row if w[0] > (max(w[2] for w in label_words) if label_words else 0) and w[0] < 460]
+            # In the duplicate lower section, the Arabic label is immediately
+            # beside the English label and there is no value on that row. Keep
+            # the label pending so the numeric value on the next row attaches
+            # to it instead of becoming "Visa No: رقم التأشيرة".
+            if value_words and all(_is_arabic_token(w[4]) for w in value_words) and min(w[0] for w in value_words) > 380:
+                value_words = []
+            value = _order_pdf_value(value_words)
+            if value:
+                lines.append(f"{matched}: {value}")
+                pending_label = None
+            else:
+                pending_label = matched
+            continue
+
+        if pending_label:
+            value_words = [w for w in row if 120 < w[0] < 460]
+            value = _order_pdf_value(value_words)
+            if value:
+                lines.append(f"{pending_label}: {value}")
+                pending_label = None
+
+    return "\n".join(lines)
+
 def ocr_image(image: Image.Image) -> str:
     image = ImageOps.exif_transpose(image).convert("RGB")
     if image.width < 1400:
@@ -917,7 +1016,8 @@ async def extract_document(
                     for page in doc:
                         page_text = page.get_text("text") or ""
                         if len(page_text.strip()) > 30:
-                            extracted_parts.append(page_text)
+                            layout_text = extract_pdf_layout_text(page)
+                            extracted_parts.append(layout_text or page_text)
                         else:
                             pix = page.get_pixmap(dpi=OCR_DPI, alpha=False)
                             image = Image.open(io.BytesIO(pix.tobytes("png")))
