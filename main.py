@@ -1,4 +1,5 @@
 import io
+import statistics
 import os
 import re
 import logging
@@ -59,7 +60,19 @@ def home():
 
 @app.get("/health")
 def health():
-    return {"status": "healthy", "version": APP_VERSION}
+    try:
+        languages = sorted(pytesseract.get_languages(config=""))
+    except Exception:
+        languages = []
+    required = {lang.strip() for lang in OCR_LANG.split("+") if lang.strip()}
+    available = required.issubset(set(languages))
+    return {
+        "status": "healthy" if available else "degraded",
+        "version": APP_VERSION,
+        "ocr_lang": OCR_LANG,
+        "available_languages": languages,
+        "missing_languages": sorted(required - set(languages)),
+    }
 
 
 NA = "غير متاح"
@@ -335,11 +348,28 @@ def parse_date_any(s: str) -> str:
 
 def clean_person_name(raw: str) -> str:
     s = _clean_value(raw)
-    tokens = [t for t in s.split(" ") if t and re.sub(r"[:\-_|/\\.,]", "", t).lower() not in NAME_STOP_TOKENS]
+    tokens = [t for t in s.split(" ") if t and re.sub(r"[:\-|_/\\.,]", "", t).lower() not in NAME_STOP_TOKENS]
     s = " ".join(tokens).strip()
     if not s or len(s) > 100 or re.fullmatch(r"[\d\s./-]+", s):
         return ""
     return s
+
+
+def reverse_arabic_field_if_marked(raw: str, field: str) -> str:
+    """Reverse only values with an explicit marker of reversed OCR order."""
+    value = _clean_value(raw)
+    if not value or not has_arabic(value):
+        return value
+    tokens = value.split()
+    if len(tokens) < 2:
+        return value
+    normalized = [t.strip(" :;|,-_/.") for t in tokens]
+    name_marker = field == "name" and normalized[-1] in {"السم", "الاسم", "الإسم"}
+    company_marker = field in {"operator", "agent"} and (
+        normalized[-1] in {"شركة", "مؤسسة", "وكالة"}
+        or normalized[0] in {"المحدودة", "المساهمة"}
+    )
+    return " ".join(reversed(tokens)) if name_marker or company_marker else value
 
 
 # ---------------------------------------------------------------------------
@@ -658,7 +688,12 @@ def parse_visa(lines: List[str], text: str, data: dict) -> None:
     is_umrah = bool(re.search(r"umrah|عمرة|المعتمر", text, re.IGNORECASE))
     data["document_type"] = "تأشيرة عمرة" if is_umrah else "تأشيرة"
 
-    name = clean_person_name(get_field(lines, "name") or "")
+    name_raw = get_field(lines, "name") or ""
+    # get_field strips known labels, including the OCR noise token "السم".
+    # Recover that marker from the original labelled line before deciding to reverse.
+    if any(LABEL_RES["name"].search(line) and re.search(r"\bالسم\s*$", line) for line in lines):
+        name_raw = f"{name_raw} السم"
+    name = clean_person_name(reverse_arabic_field_if_marked(name_raw, "name"))
     if name:
         data["full_name"] = name
     elif mrz.get("name_latin"):
@@ -710,8 +745,8 @@ def parse_visa(lines: List[str], text: str, data: dict) -> None:
     if vtype:
         data["visa_type"] = vtype
 
-    operator = get_field(lines, "operator")
-    agent = get_field(lines, "agent")
+    operator = reverse_arabic_field_if_marked(get_field(lines, "operator") or "", "operator")
+    agent = reverse_arabic_field_if_marked(get_field(lines, "agent") or "", "agent")
     if operator:
         data["extra1"] = _clean_value(operator)
     if agent:
@@ -807,7 +842,26 @@ def ocr_image(image: Image.Image) -> str:
         scale = min(2.0, 1400 / max(image.width, 1))
         image = image.resize((int(image.width * scale), int(image.height * scale)))
     try:
-        return pytesseract.image_to_string(image, lang=OCR_LANG, config="--oem 3 --psm 6")
+        candidates = []
+        variants = [image, ImageOps.autocontrast(ImageOps.grayscale(image))]
+        for variant in variants:
+            for psm in (6, 11):
+                data = pytesseract.image_to_data(
+                    variant,
+                    lang=OCR_LANG,
+                    config=f"--oem 3 --psm {psm}",
+                    output_type=pytesseract.Output.DICT,
+                )
+                words = [w.strip() for w in data.get("text", []) if w and w.strip()]
+                text = "\n".join(words)
+                confidences = [
+                    float(c) for c in data.get("conf", [])
+                    if str(c).strip() not in {"", "-1"} and float(c) >= 0
+                ]
+                if text:
+                    score = (statistics.mean(confidences) if confidences else 0.0, len(text))
+                    candidates.append((score, text))
+        return max(candidates, key=lambda item: item[0])[1] if candidates else ""
     except pytesseract.TesseractError as exc:
         logger.warning("Configured OCR language unavailable; retrying English OCR.")
         try:
