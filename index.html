@@ -3,235 +3,842 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام تتبع العمرة والوثائق | Umrah Track</title>
-    <!-- Tailwind CSS CDN -->
+    <title>VANT | نظام تتبع وتأشيرات العمرة</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        vant: {
+                            bg: '#07090e',
+                            surface: '#0d1117',
+                            elevated: '#131922',
+                            border: '#1e2633',
+                            accent: '#00e599',
+                            accentHover: '#00cc88',
+                            muted: '#8b95a5'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['"IBM Plex Sans Arabic"', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        body { font-family: 'Tajawal', sans-serif; }
+        body {
+            background-color: #07090e;
+            color: #e6edf3;
+            font-family: 'IBM Plex Sans Arabic', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        .vant-card {
+            background-color: #0d1117;
+            border: 1px solid #1e2633;
+        }
+        .vant-input {
+            background-color: #07090e;
+            border: 1px solid #1e2633;
+            color: #e6edf3;
+            transition: border-color 0.15s ease;
+        }
+        .vant-input:focus {
+            border-color: #00e599;
+            outline: none;
+        }
+        .vant-btn-primary {
+            background-color: #00e599;
+            color: #07090e;
+            font-weight: 600;
+            transition: background-color 0.15s ease, opacity 0.15s ease;
+        }
+        .vant-btn-primary:hover:not(:disabled) {
+            background-color: #00cc88;
+        }
+        .vant-btn-primary:disabled {
+            background-color: #161d27;
+            color: #4a5568;
+            cursor: not-allowed;
+        }
+        .vant-btn-secondary {
+            background-color: #131922;
+            border: 1px solid #1e2633;
+            color: #e6edf3;
+            transition: border-color 0.15s ease, color 0.15s ease;
+        }
+        .vant-btn-secondary:hover:not(:disabled) {
+            border-color: #00e599;
+            color: #00e599;
+        }
+        .nav-tab {
+            border-bottom: 2px solid transparent;
+            color: #8b95a5;
+            transition: all 0.15s ease;
+        }
+        .nav-tab:hover {
+            color: #e6edf3;
+        }
+        .nav-tab.active {
+            border-bottom-color: #00e599;
+            color: #00e599;
+            font-weight: 600;
+        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #07090e; }
+        ::-webkit-scrollbar-thumb { background: #1e2633; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #00e599; }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen">
+<body class="min-h-screen flex flex-col selection:bg-vant-accent selection:text-vant-bg">
 
-    <!-- Header / Navbar -->
-    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
-            <div class="flex items-center gap-3">
-                <span class="text-3xl">🕋</span>
-                <div>
-                    <h1 class="font-extrabold text-xl text-emerald-400">Umrah Track Pro</h1>
-                    <p class="text-xs text-slate-400">نظام استخراج وتحليل وثائق السفر ومراجعة البيانات</p>
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed bottom-5 left-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+
+    <!-- Top Header -->
+    <header class="border-b border-vant-border bg-vant-bg/95 backdrop-blur sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6">
+            <div class="flex flex-wrap items-center justify-between py-3.5 gap-4">
+                <!-- Brand -->
+                <div class="flex items-center gap-5">
+                    <a href="https://vant-tech.com" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2.5 group">
+                        <div class="w-8 h-8 rounded bg-vant-surface border border-vant-border group-hover:border-vant-accent transition flex items-center justify-center font-mono font-bold text-base text-white">
+                            V
+                        </div>
+                        <span class="font-mono font-bold text-lg tracking-wider text-white">V<span class="text-vant-accent">A</span>NT</span>
+                    </a>
+                    <div class="h-4 w-px bg-vant-border hidden sm:block"></div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 class="text-sm font-semibold text-white">نظام تتبع وتأشيرات العمرة</h1>
+                            <span id="syncModeBadge" class="text-[11px] font-mono px-2 py-0.5 rounded bg-vant-surface border border-vant-border text-vant-muted">OCR v3</span>
+                        </div>
+                        <p class="text-[11px] text-vant-muted hidden sm:block">إدارة الوثائق ومتابعة صلاحية الإقامة القانونية (90 يوماً)</p>
+                    </div>
+                </div>
+
+                <!-- OCR Endpoint Configuration -->
+                <div class="flex items-center gap-2 bg-vant-surface px-3 py-1.5 rounded border border-vant-border w-full sm:w-auto justify-between sm:justify-start">
+                    <div class="flex items-center gap-2">
+                        <span id="serverStatusDot" class="w-2 h-2 rounded-full bg-amber-400"></span>
+                        <span id="serverStatusText" class="text-[11px] font-mono text-vant-muted">فحص...</span>
+                    </div>
+                    <div class="h-3.5 w-px bg-vant-border mx-1"></div>
+                    <input type="url" id="serverUrl" value="https://ocr-nx7s.onrender.com" dir="ltr"
+                           aria-label="رابط خادم OCR"
+                           class="bg-transparent text-vant-accent font-mono text-xs outline-none w-48 sm:w-56 text-left">
+                    <button type="button" onclick="checkServerHealth(true)"
+                            class="text-[11px] text-vant-muted hover:text-white px-2 py-0.5 rounded bg-vant-elevated border border-vant-border transition">
+                        فحص الاتصال
+                    </button>
                 </div>
             </div>
-            
-            <!-- Render Server Settings -->
-            <div class="flex items-center gap-2 bg-slate-800/90 p-2 rounded-xl border border-slate-700 text-xs w-full sm:w-auto">
-                <span id="serverStatusDot" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span class="text-slate-300 font-medium">رابط خادم OCR:</span>
-                <input type="url" id="serverUrl" value="https://ocr-nx7s.onrender.com" placeholder="https://your-app.onrender.com" 
-                       class="bg-slate-900 text-emerald-300 px-3 py-1 rounded-lg border border-slate-700 outline-none w-64 text-left font-mono text-xs focus:border-emerald-500">
-            </div>
+
+            <!-- Navigation Bar -->
+            <nav class="flex items-center justify-between border-t border-vant-border/60 pt-1 overflow-x-auto">
+                <div class="flex items-center gap-6">
+                    <button type="button" id="tabBtn-ocr" onclick="switchView('ocr')" class="nav-tab active py-3 text-xs flex items-center gap-2 whitespace-nowrap">
+                        <span class="font-mono text-[11px] opacity-75">01</span>
+                        <span>فحص الوثائق والتسجيل</span>
+                    </button>
+                    <button type="button" id="tabBtn-registry" onclick="switchView('registry')" class="nav-tab py-3 text-xs flex items-center gap-2 whitespace-nowrap">
+                        <span class="font-mono text-[11px] opacity-75">02</span>
+                        <span>سجل المعتمرين والإقامة</span>
+                        <span id="navCountBadge" class="font-mono text-[11px] px-1.5 py-0.2 rounded bg-vant-elevated text-vant-accent border border-vant-border">0</span>
+                    </button>
+                    <button type="button" id="tabBtn-alerts" onclick="switchView('alerts')" class="nav-tab py-3 text-xs flex items-center gap-2 whitespace-nowrap">
+                        <span class="font-mono text-[11px] opacity-75">03</span>
+                        <span>مصفوفة التنبيهات والسجل</span>
+                        <span id="navCriticalBadge" class="hidden font-mono text-[11px] px-1.5 py-0.2 rounded bg-red-950/80 text-red-400 border border-red-800/70">0</span>
+                    </button>
+                </div>
+
+                <div class="hidden md:flex items-center gap-2 py-2">
+                    <button type="button" onclick="openPilgrimModal()" class="vant-btn-secondary text-xs px-3 py-1.5 rounded flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        <span>إضافة يدوية</span>
+                    </button>
+                </div>
+            </nav>
         </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-4 py-8 space-y-8">
+    <!-- Main Workspace -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-7 flex-1 w-full">
 
-        <!-- Upper Section: File Upload & Smart Results Card -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            
-            <!-- Upload Box (4 cols) -->
-            <div class="lg:col-span-4 bg-slate-900/60 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between shadow-xl">
-                <div>
-                    <h2 class="text-lg font-bold text-white mb-2 flex items-center gap-2">
-                        <span>📄</span> رفع المستند (تأشيرة / تذكرة)
-                    </h2>
-                    <p class="text-xs text-slate-400 mb-4">يرسل المستند إلى خادم OCR لاستخراج النص؛ النتائج آلية وقد تحتاج إلى مراجعة بشرية.</p>
-                    
-                    <div id="dropArea" class="border-2 border-dashed border-slate-700 hover:border-emerald-500 transition rounded-2xl p-6 text-center cursor-pointer bg-slate-950/50 flex flex-col items-center justify-center min-h-[200px] group">
-                        <span class="text-4xl mb-3 group-hover:scale-110 transition duration-200">📥</span>
-                        <p class="text-sm text-slate-300 font-medium">اضغط هنا أو اسحب الملف</p>
-                        <p class="text-[11px] text-slate-500 mt-1">PDF, PNG, JPG, JPEG</p>
-                        <input type="file" id="fileInput" accept=".pdf, .png, .jpg, .jpeg" class="hidden">
-                    </div>
+        <!-- ========================================================= -->
+        <!-- VIEW 01: OCR EXTRACTION & REGISTRATION                     -->
+        <!-- ========================================================= -->
+        <section id="view-ocr" class="space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-                    <div id="fileInfo" class="hidden mt-3 p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs flex justify-between items-center">
-                        <span id="fileName" class="font-mono text-emerald-400 truncate max-w-[200px]"></span>
-                        <span id="fileSize" class="text-slate-400"></span>
-                    </div>
-                </div>
+                <!-- Upload Column (4 Cols) -->
+                <div class="lg:col-span-4 vant-card rounded-lg p-5 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <h2 class="text-sm font-semibold text-white">رفع مستند السفر أو التأشيرة</h2>
+                            <span class="text-[11px] font-mono text-vant-muted">PDF / PNG / JPG</span>
+                        </div>
+                        <p class="text-xs text-vant-muted mb-4 leading-relaxed">
+                            ارفع ملف التأشيرة أو جواز السفر أو التذكرة لاستخراج الحقول آلياً، ثم راجع البيانات قبل اعتمادها في السجل.
+                        </p>
 
-                <button id="uploadBtn" onclick="processDocument()" disabled 
-                        class="w-full mt-6 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-600 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-xl transition duration-200 shadow-lg flex items-center justify-center gap-2">
-                    <span>⚡</span> معالجة واستخراج البيانات
-                </button>
-            </div>
+                        <!-- Dropzone -->
+                        <div id="dropArea" class="border border-dashed border-vant-border hover:border-vant-accent rounded-lg p-7 text-center cursor-pointer bg-vant-bg/60 transition flex flex-col items-center justify-center min-h-[190px]">
+                            <div class="w-10 h-10 rounded-full bg-vant-elevated border border-vant-border flex items-center justify-center mb-3 text-vant-accent">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                                </svg>
+                            </div>
+                            <p class="text-xs font-medium text-white">اسحب الملف إلى هنا أو اضغط للاختيار</p>
+                            <p class="text-[11px] font-mono text-vant-muted mt-1">الحد الأقصى المسموح: 15MB</p>
+                            <input type="file" id="fileInput" accept=".pdf, .png, .jpg, .jpeg" class="hidden">
+                        </div>
 
-            <!-- Dynamic Extracted Results Card (8 cols) -->
-            <div class="lg:col-span-8 bg-slate-900/60 border border-slate-800 rounded-2xl p-6 relative shadow-xl min-h-[400px]">
-                
-                <!-- Loading Overlay -->
-                <div id="loadingOverlay" class="hidden absolute inset-0 bg-slate-950/90 backdrop-blur-sm rounded-2xl z-20 flex flex-col items-center justify-center gap-3">
-                    <div class="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-                    <p class="text-emerald-400 font-bold text-sm">جاري معالجة واستخراج البيانات عبر الـ OCR...</p>
-                    <p class="text-xs text-slate-400">قد يستغرق ذلك ثوانٍ قليلة إذا كان الخادم في وضع السكون.</p>
-                </div>
+                        <!-- Selected File Bar -->
+                        <div id="fileInfo" class="hidden mt-3 p-2.5 bg-vant-bg rounded border border-vant-border text-xs flex justify-between items-center">
+                            <div class="flex items-center gap-2 truncate">
+                                <span class="w-1.5 h-1.5 rounded-full bg-vant-accent shrink-0"></span>
+                                <span id="fileName" class="font-mono text-white truncate max-w-[180px]" dir="ltr"></span>
+                            </div>
+                            <div class="flex items-center gap-2 shrink-0">
+                                <span id="fileSize" class="font-mono text-[11px] text-vant-muted" dir="ltr"></span>
+                                <button type="button" onclick="clearSelectedFile()" class="text-vant-muted hover:text-red-400 text-xs px-1" title="إلغاء الملف">✕</button>
+                            </div>
+                        </div>
 
-                <!-- Header Badge & Status -->
-                <div class="flex flex-wrap justify-between items-center gap-2 mb-6 border-b border-slate-800 pb-4">
-                    <div class="flex items-center gap-2">
-                        <span id="docIcon" class="text-2xl">🔍</span>
-                        <div>
-                            <h2 id="docTypeTitle" class="text-lg font-bold text-white">نتائج الفحص والتحليل</h2>
-                            <p id="docSubtitle" class="text-xs text-slate-400">يرجى رفع مستند للبدء</p>
+                        <!-- Processing Preferences -->
+                        <div class="mt-4 pt-4 border-t border-vant-border space-y-2.5">
+                            <label class="flex items-center justify-between cursor-pointer text-xs text-slate-300">
+                                <span>معالجة انعكاس النصوص العربية تلقائياً</span>
+                                <input type="checkbox" id="autoFixArabicToggle" checked class="accent-vant-accent w-3.5 h-3.5 rounded">
+                            </label>
                         </div>
                     </div>
-                    <span id="docBadge" class="text-xs bg-slate-800 text-slate-400 px-3 py-1 rounded-full border border-slate-700">بانتظار ملف</span>
+
+                    <button type="button" id="uploadBtn" onclick="processDocument()" disabled
+                            class="w-full mt-5 vant-btn-primary py-2.5 px-4 rounded text-xs flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                        <span>بدء الفحص واستخراج البيانات</span>
+                    </button>
                 </div>
 
-                <!-- Fields Grid -->
-                <div id="fieldsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    
-                    <!-- Full Name Field -->
-                    <div class="md:col-span-2 bg-slate-950/80 p-3 rounded-xl border border-slate-800/80">
-                        <label class="block text-xs text-slate-400 mb-1">اسم المعتمر / المسافر</label>
-                        <input type="text" id="resName" value="غير متاح" readonly 
-                               class="w-full bg-transparent text-emerald-400 font-bold text-base outline-none">
+                <!-- Extracted Fields & Registration Form (8 Cols) -->
+                <div class="lg:col-span-8 vant-card rounded-lg p-5 relative">
+
+                    <!-- Processing Overlay -->
+                    <div id="loadingOverlay" class="hidden absolute inset-0 bg-vant-bg/90 backdrop-blur-sm rounded-lg z-20 flex flex-col items-center justify-center gap-3 p-6 text-center">
+                        <div class="w-8 h-8 border-2 border-vant-accent border-t-transparent rounded-full animate-spin"></div>
+                        <p class="text-white font-medium text-xs">جاري تحليل المستند واستخراج الحقول عبر خادم OCR...</p>
+                        <p class="text-[11px] text-vant-muted max-w-md">قد تستغرق العملية الأولى بضع ثوانٍ إضافية في حال كان الخادم في وضع السكون.</p>
                     </div>
 
-                    <!-- Passport Number -->
-                    <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800/80">
-                        <label class="block text-xs text-slate-400 mb-1">رقم جواز السفر</label>
-                        <input type="text" id="resPassport" value="غير متاح" readonly 
-                               class="w-full bg-transparent text-slate-200 font-mono font-bold text-sm outline-none">
+                    <!-- Card Header -->
+                    <div class="flex flex-wrap justify-between items-center gap-2 mb-5 pb-3.5 border-b border-vant-border">
+                        <div>
+                            <h2 id="docTypeTitle" class="text-sm font-semibold text-white">بيانات المستند المستخرجة</h2>
+                            <p id="docSubtitle" class="text-[11px] text-vant-muted mt-0.5">جميع الحقول قابلة للمراجعة والتعديل المباشر قبل الحفظ</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span id="docBadge" class="text-[11px] font-mono bg-vant-elevated text-vant-muted px-2.5 py-1 rounded border border-vant-border">بانتظار المستند</span>
+                            <button type="button" onclick="resetOcrForm()" class="vant-btn-secondary text-[11px] px-2.5 py-1 rounded">تفريغ الحقول</button>
+                        </div>
                     </div>
 
-                    <!-- Ref / Ticket / Visa Number -->
-                    <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800/80">
-                        <label id="lblReference" class="block text-xs text-slate-400 mb-1">الرقم المرجعي / التذكرة / التأشيرة</label>
-                        <input type="text" id="resReference" value="غير متاح" readonly 
-                               class="w-full bg-transparent text-slate-200 font-mono font-bold text-sm outline-none">
+                    <!-- Form Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                        <!-- Full Name -->
+                        <div class="md:col-span-2">
+                            <div class="flex justify-between items-center mb-1.5">
+                                <label for="resName" class="text-xs text-vant-muted">اسم المعتمر الكامل <span class="text-red-400">*</span></label>
+                                <div class="flex items-center gap-1.5">
+                                    <button type="button" onclick="reverseFieldWords('resName')" class="text-[11px] text-vant-muted hover:text-vant-accent px-2 py-0.5 rounded bg-vant-elevated border border-vant-border transition">
+                                        عكس ترتيب الكلمات
+                                    </button>
+                                </div>
+                            </div>
+                            <input type="text" id="resName" placeholder="الاسم الرباعي كما يظهر في الجواز أو التأشيرة"
+                                   class="w-full vant-input rounded px-3 py-2 text-sm font-medium">
+                        </div>
+
+                        <!-- Passport Number -->
+                        <div>
+                            <label for="resPassport" class="block text-xs text-vant-muted mb-1.5">رقم جواز السفر <span class="text-red-400">*</span></label>
+                            <input type="text" id="resPassport" placeholder="مثال: A12345678" dir="ltr"
+                                   class="w-full vant-input rounded px-3 py-2 text-sm font-mono uppercase text-left">
+                        </div>
+
+                        <!-- Nationality -->
+                        <div>
+                            <label for="resNationality" class="block text-xs text-vant-muted mb-1.5">الجنسية (تُستخرج تلقائياً من التأشيرة)</label>
+                            <input type="text" id="resNationality" placeholder="مثال: اليمن"
+                                   class="w-full vant-input rounded px-3 py-2 text-sm">
+                        </div>
+
+                        <!-- Visa / Reference Number -->
+                        <div>
+                            <label id="lblReference" for="resReference" class="block text-xs text-vant-muted mb-1.5">رقم التأشيرة / المرجع</label>
+                            <input type="text" id="resReference" placeholder="رقم التأشيرة أو التذكرة" dir="ltr"
+                                   class="w-full vant-input rounded px-3 py-2 text-sm font-mono text-left">
+                        </div>
+
+                        <!-- Issue / Flight Date -->
+                        <div>
+                            <label id="lblDate" for="resDate" class="block text-xs text-vant-muted mb-1.5">تاريخ الإصدار / الرحلة</label>
+                            <input type="text" id="resDate" placeholder="DD/MM/YYYY" dir="ltr"
+                                   class="w-full vant-input rounded px-3 py-2 text-sm font-mono text-left">
+                        </div>
+
+                        <!-- Umrah Company / Agent -->
+                        <div class="md:col-span-2">
+                            <div class="flex justify-between items-center mb-1.5">
+                                <label id="lblExtra1" for="resExtra1" class="text-xs text-vant-muted">شركة العمرة / الوكيل</label>
+                                <button type="button" onclick="reverseFieldWords('resExtra1')" class="text-[11px] text-vant-muted hover:text-vant-accent px-2 py-0.5 rounded bg-vant-elevated border border-vant-border transition">
+                                    عكس ترتيب الكلمات
+                                </button>
+                            </div>
+                            <input type="text" id="resExtra1" placeholder="اسم شركة العمرة أو الوكيل المعتمد"
+                                   class="w-full vant-input rounded px-3 py-2 text-sm">
+                        </div>
                     </div>
 
-                    <!-- Date -->
-                    <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800/80">
-                        <label id="lblDate" class="block text-xs text-slate-400 mb-1">تاريخ الإصدار / الرحلة</label>
-                        <input type="text" id="resDate" value="غير متاح" readonly 
-                               class="w-full bg-transparent text-slate-200 font-mono text-sm outline-none">
+                    <!-- Optional Stay Counter & Contact Section -->
+                    <div class="mt-5 pt-4 border-t border-vant-border">
+                        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                            <span class="text-xs font-medium text-white">إعدادات دخول المملكة والتواصل (اختياري عند التسجيل)</span>
+                            <span class="text-[11px] text-vant-muted">يمكنك حفظ التأشيرة الآن وتحديد تاريخ الدخول لاحقاً من السجل</span>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <div class="flex justify-between items-center mb-1.5">
+                                    <label for="regEntryDate" class="text-xs text-vant-muted">تاريخ الدخول للمملكة</label>
+                                    <button type="button" onclick="document.getElementById('regEntryDate').value=''" class="text-[11px] text-vant-muted hover:text-white">تفريغ</button>
+                                </div>
+                                <input type="date" id="regEntryDate" class="w-full vant-input rounded px-3 py-2 text-xs font-mono">
+                            </div>
+
+                            <div>
+                                <label for="regPhone" class="block text-xs text-vant-muted mb-1.5">رقم واتساب المعتمر / المشرف</label>
+                                <input type="tel" id="regPhone" placeholder="9677XXXXXXXX" dir="ltr"
+                                       class="w-full vant-input rounded px-3 py-2 text-xs font-mono text-left">
+                            </div>
+
+                            <div class="flex items-end">
+                                <button type="button" onclick="saveFromOcrCard()"
+                                        class="w-full vant-btn-primary py-2.5 px-4 rounded text-xs flex items-center justify-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                    <span>اعتماد وحفظ في السجل</span>
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- Dynamic Extra Field 1 -->
-                    <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800/80">
-                        <label id="lblExtra1" class="block text-xs text-slate-400 mb-1">الجهة / الوكيل</label>
-                        <input type="text" id="resExtra1" value="غير متاح" readonly 
-                               class="w-full bg-transparent text-slate-300 text-sm outline-none">
+                    <!-- Raw OCR Text Inspector -->
+                    <div class="mt-4 pt-3 border-t border-vant-border/60">
+                        <details class="group">
+                            <summary class="text-[11px] font-mono text-vant-muted hover:text-white cursor-pointer flex items-center justify-between select-none">
+                                <span>عرض النص الخام المستخرج من الوثيقة (Raw OCR Output)</span>
+                                <span class="group-open:rotate-180 transition-transform">▼</span>
+                            </summary>
+                            <textarea id="resRawText" rows="4" readonly
+                                      placeholder="سيظهر النص الخام المستخرج من الخادم هنا للمراجعة..."
+                                      class="w-full mt-2 vant-input rounded p-2.5 text-[11px] font-mono text-vant-muted resize-y"></textarea>
+                        </details>
                     </div>
-
                 </div>
-
-                <p class="mt-4 text-xs text-amber-300 bg-amber-950/30 border border-amber-900/60 rounded-lg p-3">
-                    تنبيه: هذه نتائج استخراج آلي وليست تحققًا من صحة التأشيرة أو التذكرة. راجع البيانات مع المستند الأصلي قبل الاعتماد عليها.
-                </p>
-
-                <!-- Raw OCR Text Toggle -->
-                <div class="mt-6 pt-4 border-t border-slate-800">
-                    <details class="group">
-                        <summary class="text-xs text-slate-400 hover:text-emerald-400 cursor-pointer flex items-center justify-between font-medium">
-                            <span>📜 عرض النص المستخرج الخام (Raw Text)</span>
-                            <span class="text-slate-600 group-open:rotate-180 transition duration-200">▼</span>
-                        </summary>
-                        <textarea id="resRawText" rows="4" readonly 
-                                  class="w-full mt-3 bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-400 font-mono outline-none resize-none"></textarea>
-                    </details>
-                </div>
-
             </div>
-        </div>
+        </section>
 
-        <!-- Risk Timeline Tracker -->
-        <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 shadow-xl">
-            <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                <span>🔔</span> جدول التنبيهات وإدارة مخاطر الإقامة (90 يوماً)
-            </h2>
+        <!-- ========================================================= -->
+        <!-- VIEW 02: PILGRIMS REGISTRY & 90-DAY STAY TRACKER          -->
+        <!-- ========================================================= -->
+        <section id="view-registry" class="hidden space-y-6">
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                <div class="bg-slate-950 border-r-4 border-emerald-500 rounded-xl p-4">
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="text-xs font-bold text-emerald-400">30 يوماً</span>
-                        <span class="text-[10px] bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded font-bold">🟢 منخفض</span>
+            <!-- KPI Metrics Bar -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                <div onclick="setFilter('ALL')" class="vant-card rounded-lg p-3.5 cursor-pointer hover:border-vant-accent transition">
+                    <span class="text-[11px] text-vant-muted block">إجمالي المسجلين</span>
+                    <div class="flex items-baseline justify-between mt-1">
+                        <span id="kpiTotal" class="text-xl font-bold font-mono text-white">0</span>
+                        <span class="text-[10px] font-mono text-vant-muted">ALL</span>
                     </div>
-                    <p class="text-xs text-slate-200 font-bold mb-1">تذكير روتيني</p>
-                    <p class="text-[11px] text-slate-400">تأكيد وتحديث موعد العودة المبدئي.</p>
                 </div>
 
-                <div class="bg-slate-950 border-r-4 border-yellow-500 rounded-xl p-4">
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="text-xs font-bold text-yellow-400">15 يوماً</span>
-                        <span class="text-[10px] bg-yellow-950 text-yellow-400 px-2 py-0.5 rounded font-bold">🟡 متوسط</span>
+                <div onclick="setFilter('PENDING')" class="vant-card rounded-lg p-3.5 cursor-pointer hover:border-slate-400 transition">
+                    <span class="text-[11px] text-vant-muted block">بانتظار الدخول</span>
+                    <div class="flex items-baseline justify-between mt-1">
+                        <span id="kpiPending" class="text-xl font-bold font-mono text-slate-300">0</span>
+                        <span class="text-[10px] font-mono text-slate-400">WAITING</span>
                     </div>
-                    <p class="text-xs text-slate-200 font-bold mb-1">تأكيد الحجز</p>
-                    <p class="text-[11px] text-slate-400">مراجعة حجوزات العودة والمنافذ.</p>
                 </div>
 
-                <div class="bg-slate-950 border-r-4 border-orange-500 rounded-xl p-4">
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="text-xs font-bold text-orange-400">7 أيام</span>
-                        <span class="text-[10px] bg-orange-950 text-orange-400 px-2 py-0.5 rounded font-bold">🟠 مرتفع</span>
+                <div onclick="setFilter('IN_KINGDOM')" class="vant-card rounded-lg p-3.5 cursor-pointer hover:border-vant-accent transition">
+                    <span class="text-[11px] text-vant-muted block">داخل المملكة حالياً</span>
+                    <div class="flex items-baseline justify-between mt-1">
+                        <span id="kpiActive" class="text-xl font-bold font-mono text-vant-accent">0</span>
+                        <span class="text-[10px] font-mono text-vant-accent">90D ACTIVE</span>
                     </div>
-                    <p class="text-xs text-slate-200 font-bold mb-1">استعداد المغادرة</p>
-                    <p class="text-[11px] text-slate-400">التنسيق مع المشرف الميداني للتجهيز.</p>
                 </div>
 
-                <div class="bg-slate-950 border-r-4 border-red-500 rounded-xl p-4">
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="text-xs font-bold text-red-400">3 أيام</span>
-                        <span class="text-[10px] bg-red-950 text-red-400 px-2 py-0.5 rounded font-bold">🔴 حرج</span>
+                <div onclick="setFilter('APPROACHING')" class="vant-card rounded-lg p-3.5 cursor-pointer hover:border-amber-400 transition">
+                    <span class="text-[11px] text-vant-muted block">أقل من 15 يوماً</span>
+                    <div class="flex items-baseline justify-between mt-1">
+                        <span id="kpiApproaching" class="text-xl font-bold font-mono text-amber-400">0</span>
+                        <span class="text-[10px] font-mono text-amber-400">WARNING</span>
                     </div>
-                    <p class="text-xs text-slate-200 font-bold mb-1">تنبيه عاجل</p>
-                    <p class="text-[11px] text-slate-400">تواصل مباشر لمنع التجاوز.</p>
                 </div>
 
-                <div class="bg-slate-950 border-r-4 border-purple-500 rounded-xl p-4">
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="text-xs font-bold text-purple-400">يوم واحد</span>
-                        <span class="text-[10px] bg-purple-950 text-purple-400 px-2 py-0.5 rounded font-bold">🚨 طوارئ</span>
+                <div onclick="setFilter('CRITICAL')" class="vant-card rounded-lg p-3.5 cursor-pointer hover:border-red-500 transition">
+                    <span class="text-[11px] text-vant-muted block">حالات حرجة (≤ 3 أيام)</span>
+                    <div class="flex items-baseline justify-between mt-1">
+                        <span id="kpiCritical" class="text-xl font-bold font-mono text-red-400">0</span>
+                        <span class="text-[10px] font-mono text-red-400">CRITICAL</span>
                     </div>
-                    <p class="text-xs text-slate-200 font-bold mb-1">توجيه للمطار</p>
-                    <p class="text-[11px] text-slate-400">تأكيد تحرك المعتمر إلى المنفذ/المطار.</p>
+                </div>
+
+                <div onclick="setFilter('OVERSTAYED')" class="vant-card rounded-lg p-3.5 cursor-pointer hover:border-purple-500 transition">
+                    <span class="text-[11px] text-vant-muted block">تجاوز 90 يوماً</span>
+                    <div class="flex items-baseline justify-between mt-1">
+                        <span id="kpiOverstayed" class="text-xl font-bold font-mono text-purple-400">0</span>
+                        <span class="text-[10px] font-mono text-purple-400">OVERSTAY</span>
+                    </div>
                 </div>
             </div>
-        </div>
 
+            <!-- Controls & Table Container -->
+            <div class="vant-card rounded-lg overflow-hidden">
+                <!-- Toolbar -->
+                <div class="p-4 border-b border-vant-border flex flex-wrap items-center justify-between gap-3">
+                    <!-- Filter Pills -->
+                    <div class="flex flex-wrap items-center gap-1.5">
+                        <button type="button" onclick="setFilter('ALL')" id="flt-ALL" class="flt-btn text-xs px-3 py-1.5 rounded bg-vant-accent text-vant-bg font-semibold transition">الكل</button>
+                        <button type="button" onclick="setFilter('PENDING')" id="flt-PENDING" class="flt-btn text-xs px-3 py-1.5 rounded bg-vant-elevated text-vant-muted hover:text-white border border-vant-border transition">بانتظار الدخول</button>
+                        <button type="button" onclick="setFilter('IN_KINGDOM')" id="flt-IN_KINGDOM" class="flt-btn text-xs px-3 py-1.5 rounded bg-vant-elevated text-vant-muted hover:text-white border border-vant-border transition">داخل المملكة</button>
+                        <button type="button" onclick="setFilter('APPROACHING')" id="flt-APPROACHING" class="flt-btn text-xs px-3 py-1.5 rounded bg-vant-elevated text-vant-muted hover:text-white border border-vant-border transition">أقل من 15 يوماً</button>
+                        <button type="button" onclick="setFilter('CRITICAL')" id="flt-CRITICAL" class="flt-btn text-xs px-3 py-1.5 rounded bg-vant-elevated text-vant-muted hover:text-white border border-vant-border transition">حرج (≤ 3 أيام)</button>
+                        <button type="button" onclick="setFilter('OVERSTAYED')" id="flt-OVERSTAYED" class="flt-btn text-xs px-3 py-1.5 rounded bg-vant-elevated text-vant-muted hover:text-white border border-vant-border transition">متجاوز</button>
+                        <button type="button" onclick="setFilter('DEPARTED')" id="flt-DEPARTED" class="flt-btn text-xs px-3 py-1.5 rounded bg-vant-elevated text-vant-muted hover:text-white border border-vant-border transition">غادر المملكة</button>
+                    </div>
+
+                    <!-- Search & Data Tools -->
+                    <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+                        <input type="text" id="searchInput" oninput="renderPilgrimsTable()"
+                               placeholder="بحث بالاسم، الجواز، التأشيرة، الجنسية..."
+                               class="vant-input rounded px-3 py-1.5 text-xs w-full sm:w-60">
+
+                        <button type="button" onclick="openPilgrimModal()" class="vant-btn-primary text-xs px-3 py-1.5 rounded">+ إضافة معتمر</button>
+                        <button type="button" onclick="exportCSV()" class="vant-btn-secondary text-xs px-2.5 py-1.5 rounded font-mono">CSV</button>
+                        <button type="button" onclick="exportJSON()" class="vant-btn-secondary text-xs px-2.5 py-1.5 rounded font-mono">تصدير JSON</button>
+                        <button type="button" onclick="document.getElementById('importJsonInput').click()" class="vant-btn-secondary text-xs px-2.5 py-1.5 rounded">استيراد</button>
+                        <input type="file" id="importJsonInput" accept=".json" class="hidden" onchange="importJSON(event)">
+                    </div>
+                </div>
+
+                <!-- Responsive Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right border-collapse">
+                        <thead>
+                            <tr class="border-b border-vant-border bg-vant-bg/60 text-[11px] text-vant-muted font-mono uppercase">
+                                <th class="py-3 px-4">المعتمر والشركة</th>
+                                <th class="py-3 px-4">الجواز / الجنسية</th>
+                                <th class="py-3 px-4">رقم التأشيرة</th>
+                                <th class="py-3 px-4">الدخول / انتهاء الـ 90 يوماً</th>
+                                <th class="py-3 px-4">المدة المتبقية</th>
+                                <th class="py-3 px-4">مستوى الخطورة</th>
+                                <th class="py-3 px-4 text-left">الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pilgrimsTableBody" class="divide-y divide-vant-border text-xs"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================================= -->
+        <!-- VIEW 03: ALERTS TIMELINE & DISPATCH LOG                   -->
+        <!-- ========================================================= -->
+        <section id="view-alerts" class="hidden space-y-6">
+
+            <!-- 5-Stage Risk Matrix -->
+            <div class="vant-card rounded-lg p-5">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-4 pb-3 border-b border-vant-border">
+                    <div>
+                        <h2 class="text-sm font-semibold text-white">مصفوفة مراحل التنبيهات (90 يوماً)</h2>
+                        <p class="text-[11px] text-vant-muted mt-0.5">اضغط على أي مرحلة لعرض المعتمرين الواقعين ضمنها وإرسال تنبيهات الواتساب المبرمجة</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+                    <!-- Stage 1 -->
+                    <div onclick="filterByStage('STAGE_30')" class="bg-vant-bg border border-vant-border hover:border-emerald-500/70 rounded-lg p-4 cursor-pointer transition">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-mono text-xs font-bold text-emerald-400">30 DAYS</span>
+                            <span id="stageCount30" class="font-mono text-[11px] px-2 py-0.5 rounded bg-emerald-950/60 text-emerald-400 border border-emerald-800/60">0</span>
+                        </div>
+                        <p class="text-xs font-semibold text-white mb-1">المرحلة الأولى — منخفض</p>
+                        <p class="text-[11px] text-vant-muted leading-relaxed">تذكير روتيني بموعد حجز تذكرة العودة وتحديث بيانات المغادرة.</p>
+                    </div>
+
+                    <!-- Stage 2 -->
+                    <div onclick="filterByStage('STAGE_15')" class="bg-vant-bg border border-vant-border hover:border-yellow-500/70 rounded-lg p-4 cursor-pointer transition">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-mono text-xs font-bold text-yellow-400">15 DAYS</span>
+                            <span id="stageCount15" class="font-mono text-[11px] px-2 py-0.5 rounded bg-yellow-950/60 text-yellow-400 border border-yellow-800/60">0</span>
+                        </div>
+                        <p class="text-xs font-semibold text-white mb-1">المرحلة الثانية — متوسط</p>
+                        <p class="text-[11px] text-vant-muted leading-relaxed">التثبت من وجود حجز عودة مؤكد ومفعل وتحديد منفذ المغادرة.</p>
+                    </div>
+
+                    <!-- Stage 3 -->
+                    <div onclick="filterByStage('STAGE_7')" class="bg-vant-bg border border-vant-border hover:border-orange-500/70 rounded-lg p-4 cursor-pointer transition">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-mono text-xs font-bold text-orange-400">07 DAYS</span>
+                            <span id="stageCount7" class="font-mono text-[11px] px-2 py-0.5 rounded bg-orange-950/60 text-orange-400 border border-orange-800/60">0</span>
+                        </div>
+                        <p class="text-xs font-semibold text-white mb-1">المرحلة الثالثة — مرتفع</p>
+                        <p class="text-[11px] text-vant-muted leading-relaxed">التنسيق المباشر مع المعتمر أو المشرف الميداني لتجهيز المغادرة.</p>
+                    </div>
+
+                    <!-- Stage 4 -->
+                    <div onclick="filterByStage('STAGE_3')" class="bg-vant-bg border border-vant-border hover:border-red-500/70 rounded-lg p-4 cursor-pointer transition">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-mono text-xs font-bold text-red-400">03 DAYS</span>
+                            <span id="stageCount3" class="font-mono text-[11px] px-2 py-0.5 rounded bg-red-950/60 text-red-400 border border-red-800/60">0</span>
+                        </div>
+                        <p class="text-xs font-semibold text-white mb-1">المرحلة الرابعة — حرج</p>
+                        <p class="text-[11px] text-vant-muted leading-relaxed">تواصل هاتفي وميداني عاجل للتأكد من عدم وجود عوائق للمغادرة.</p>
+                    </div>
+
+                    <!-- Stage 5 -->
+                    <div onclick="filterByStage('STAGE_1')" class="bg-vant-bg border border-vant-border hover:border-purple-500/70 rounded-lg p-4 cursor-pointer transition">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="font-mono text-xs font-bold text-purple-400">24 HOURS</span>
+                            <span id="stageCount1" class="font-mono text-[11px] px-2 py-0.5 rounded bg-purple-950/60 text-purple-400 border border-purple-800/60">0</span>
+                        </div>
+                        <p class="text-xs font-semibold text-white mb-1">المرحلة الخامسة — طارئ</p>
+                        <p class="text-[11px] text-vant-muted leading-relaxed">تنبيه الإخلاء الفوري والتأكد من توجه المعتمر إلى المنفذ أو المطار.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alerts Log Table -->
+            <div class="vant-card rounded-lg overflow-hidden">
+                <div class="p-4 border-b border-vant-border flex items-center justify-between">
+                    <div>
+                        <h3 class="text-sm font-semibold text-white">سجل الإشعارات المرسلة (Alerts Log)</h3>
+                        <p class="text-[11px] text-vant-muted">توثيق زمني لجميع رسائل التنبيه المرسلة للمعتمرين والمشرفين عبر واتساب</p>
+                    </div>
+                    <button type="button" onclick="clearAlertsLog()" class="vant-btn-secondary text-xs px-3 py-1.5 rounded text-red-400 hover:border-red-500">
+                        مسح السجل
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right border-collapse">
+                        <thead>
+                            <tr class="border-b border-vant-border bg-vant-bg/60 text-[11px] text-vant-muted font-mono uppercase">
+                                <th class="py-3 px-4">التوقيت</th>
+                                <th class="py-3 px-4">اسم المعتمر</th>
+                                <th class="py-3 px-4">رقم الجواز</th>
+                                <th class="py-3 px-4">مرحلة التنبيه</th>
+                                <th class="py-3 px-4">القناة</th>
+                                <th class="py-3 px-4">الحالة</th>
+                            </tr>
+                        </thead>
+                        <tbody id="alertsLogTableBody" class="divide-y divide-vant-border text-xs"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
     </main>
 
-    <!-- JavaScript Handling Code -->
+    <!-- Footer -->
+    <footer class="border-t border-vant-border bg-vant-bg py-4 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 flex flex-wrap items-center justify-between gap-4 text-xs text-vant-muted">
+            <div class="flex items-center gap-2">
+                <span class="font-mono font-bold text-white">V<span class="text-vant-accent">A</span>NT</span>
+                <span>— نظام تتبع وتأشيرات العمرة</span>
+            </div>
+            <div class="font-mono text-[11px]">
+                جميع الحقوق محفوظة © 2026 VANT
+            </div>
+        </div>
+    </footer>
+
+    <!-- ========================================================= -->
+    <!-- MODAL 1: ADD / EDIT PILGRIM                               -->
+    <!-- ========================================================= -->
+    <div id="pilgrimModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="vant-card rounded-lg max-w-lg w-full p-6 shadow-2xl">
+            <div class="flex justify-between items-center pb-3 mb-4 border-b border-vant-border">
+                <h3 id="modalTitle" class="text-sm font-semibold text-white">إضافة / تعديل بيانات معتمر</h3>
+                <button type="button" onclick="closePilgrimModal()" class="text-vant-muted hover:text-white text-sm">✕</button>
+            </div>
+
+            <input type="hidden" id="editPilgrimId">
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
+                <div class="sm:col-span-2">
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="text-vant-muted">الاسم الكامل <span class="text-red-400">*</span></label>
+                        <button type="button" onclick="reverseFieldWords('modalName')" class="text-[11px] text-vant-accent hover:underline">عكس ترتيب الاسم</button>
+                    </div>
+                    <input type="text" id="modalName" class="w-full vant-input rounded px-3 py-2">
+                </div>
+
+                <div>
+                    <label class="block text-vant-muted mb-1">رقم الجواز <span class="text-red-400">*</span></label>
+                    <input type="text" id="modalPassport" dir="ltr" class="w-full vant-input rounded px-3 py-2 font-mono uppercase text-left">
+                </div>
+
+                <div>
+                    <label class="block text-vant-muted mb-1">الجنسية</label>
+                    <input type="text" id="modalNationality" class="w-full vant-input rounded px-3 py-2">
+                </div>
+
+                <div>
+                    <label class="block text-vant-muted mb-1">رقم التأشيرة</label>
+                    <input type="text" id="modalVisa" dir="ltr" class="w-full vant-input rounded px-3 py-2 font-mono text-left">
+                </div>
+
+                <div>
+                    <label class="block text-vant-muted mb-1">رقم الواتساب</label>
+                    <input type="tel" id="modalPhone" dir="ltr" placeholder="9677XXXXXXXX" class="w-full vant-input rounded px-3 py-2 font-mono text-left">
+                </div>
+
+                <div class="sm:col-span-2">
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="text-vant-muted">شركة العمرة / الوكيل</label>
+                        <button type="button" onclick="reverseFieldWords('modalOperator')" class="text-[11px] text-vant-accent hover:underline">عكس ترتيب الشركة</button>
+                    </div>
+                    <input type="text" id="modalOperator" class="w-full vant-input rounded px-3 py-2">
+                </div>
+
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="text-vant-muted">تاريخ الدخول للمملكة (اختياري)</label>
+                        <button type="button" onclick="document.getElementById('modalEntryDate').value=''" class="text-[10px] text-vant-muted hover:text-white">تفريغ</button>
+                    </div>
+                    <input type="date" id="modalEntryDate" class="w-full vant-input rounded px-3 py-2 font-mono">
+                </div>
+
+                <div>
+                    <label class="block text-vant-muted mb-1">حالة المعتمر</label>
+                    <select id="modalStatus" class="w-full vant-input rounded px-3 py-2">
+                        <option value="AUTO">تلقائي (حسب تاريخ الدخول)</option>
+                        <option value="DEPARTED">غادر المملكة (DEPARTED)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 mt-6 pt-4 border-t border-vant-border">
+                <button type="button" onclick="closePilgrimModal()" class="vant-btn-secondary text-xs px-4 py-2 rounded">إلغاء</button>
+                <button type="button" onclick="saveModalPilgrim()" class="vant-btn-primary text-xs px-5 py-2 rounded">حفظ البيانات</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- MODAL 2: QUICK ENTRY DATE ACTIVATION                      -->
+    <!-- ========================================================= -->
+    <div id="entryDateModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="vant-card rounded-lg max-w-sm w-full p-5 shadow-2xl">
+            <div class="flex justify-between items-center pb-3 mb-3 border-b border-vant-border">
+                <h3 class="text-sm font-semibold text-white">تفعيل عداد الإقامة (90 يوماً)</h3>
+                <button type="button" onclick="closeEntryDateModal()" class="text-vant-muted hover:text-white text-sm">✕</button>
+            </div>
+            <input type="hidden" id="quickEntryPilgrimId">
+            <p id="quickEntryPilgrimName" class="text-xs text-vant-accent font-medium mb-3"></p>
+            <label class="block text-xs text-vant-muted mb-1.5">تاريخ دخول المملكة الفعلي</label>
+            <input type="date" id="quickEntryDateInput" class="w-full vant-input rounded px-3 py-2 text-xs font-mono mb-4">
+
+            <div class="flex justify-end gap-2">
+                <button type="button" onclick="closeEntryDateModal()" class="vant-btn-secondary text-xs px-3 py-1.5 rounded">إلغاء</button>
+                <button type="button" onclick="confirmQuickEntryDate()" class="vant-btn-primary text-xs px-4 py-1.5 rounded">تفعيل العداد</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- APPLICATION LOGIC                                         -->
+    <!-- ========================================================= -->
     <script>
+        const STORAGE_KEY_PILGRIMS = 'vant_umrah_pilgrims_v1';
+        const STORAGE_KEY_ALERTS   = 'vant_umrah_alerts_v1';
+
+        const MAX_FILE_SIZE = 15 * 1024 * 1024;
+        const ALLOWED_TYPES = new Set(['application/pdf', 'image/png', 'image/jpeg']);
+        const ALLOWED_EXTENSIONS = /\.(pdf|png|jpe?g)$/i;
+
+        let pilgrims = [];
+        let alertsLog = [];
+        let currentFilter = 'ALL';
+        let selectedFile = null;
+
+        // DOM Elements
         const dropArea = document.getElementById('dropArea');
         const fileInput = document.getElementById('fileInput');
         const fileInfo = document.getElementById('fileInfo');
-        const fileName = document.getElementById('fileName');
-        const fileSize = document.getElementById('fileSize');
+        const fileNameEl = document.getElementById('fileName');
+        const fileSizeEl = document.getElementById('fileSize');
         const uploadBtn = document.getElementById('uploadBtn');
         const loadingOverlay = document.getElementById('loadingOverlay');
         const serverUrlInput = document.getElementById('serverUrl');
 
-        let selectedFile = null;
+        // ---------------------------------------------------------
+        // Toast Notification System (Replaces browser alerts)
+        // ---------------------------------------------------------
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            const colors = {
+                success: 'border-vant-accent bg-vant-surface text-white',
+                error:   'border-red-500 bg-vant-surface text-red-200',
+                warning: 'border-amber-500 bg-vant-surface text-amber-200',
+                info:    'border-vant-border bg-vant-surface text-slate-200'
+            };
+            const dotColors = {
+                success: 'bg-vant-accent',
+                error:   'bg-red-500',
+                warning: 'bg-amber-400',
+                info:    'bg-blue-400'
+            };
+            toast.className = `pointer-events-auto border ${colors[type] || colors.info} rounded-lg p-3 shadow-xl flex items-center gap-2.5 text-xs transition-opacity duration-200`;
+            toast.innerHTML = `
+                <span class="w-2 h-2 rounded-full shrink-0 ${dotColors[type] || dotColors.info}"></span>
+                <span class="flex-1 leading-relaxed">${escapeHtml(message)}</span>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 200);
+            }, 3800);
+        }
 
-        // Drag & Drop
+        function escapeHtml(str) {
+            return String(str || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        // ---------------------------------------------------------
+        // Initialization & Storage
+        // ---------------------------------------------------------
+        window.addEventListener('DOMContentLoaded', () => {
+            loadFromStorage();
+            renderAll();
+            checkServerHealth(false);
+        });
+
+        function loadFromStorage() {
+            try {
+                const rawP = localStorage.getItem(STORAGE_KEY_PILGRIMS);
+                pilgrims = rawP ? JSON.parse(rawP) : [];
+                if (!Array.isArray(pilgrims)) pilgrims = [];
+            } catch {
+                pilgrims = [];
+            }
+
+            try {
+                const rawA = localStorage.getItem(STORAGE_KEY_ALERTS);
+                alertsLog = rawA ? JSON.parse(rawA) : [];
+                if (!Array.isArray(alertsLog)) alertsLog = [];
+            } catch {
+                alertsLog = [];
+            }
+        }
+
+        function saveToStorage() {
+            localStorage.setItem(STORAGE_KEY_PILGRIMS, JSON.stringify(pilgrims));
+            localStorage.setItem(STORAGE_KEY_ALERTS, JSON.stringify(alertsLog));
+        }
+
+        // ---------------------------------------------------------
+        // Navigation Tabs
+        // ---------------------------------------------------------
+        function switchView(viewName) {
+            ['ocr', 'registry', 'alerts'].forEach(v => {
+                const section = document.getElementById(`view-${v}`);
+                const btn = document.getElementById(`tabBtn-${v}`);
+                if (v === viewName) {
+                    section.classList.remove('hidden');
+                    btn.classList.add('active');
+                } else {
+                    section.classList.add('hidden');
+                    btn.classList.remove('active');
+                }
+            });
+            renderAll();
+        }
+
+        // ---------------------------------------------------------
+        // Server Health Check (/health)
+        // ---------------------------------------------------------
+        async function checkServerHealth(notifyUser = false) {
+            const dot = document.getElementById('serverStatusDot');
+            const txt = document.getElementById('serverStatusText');
+            const badge = document.getElementById('syncModeBadge');
+            let baseUrl = serverUrlInput.value.trim().replace(/\/+$/, '');
+
+            if (!baseUrl) {
+                dot.className = 'w-2 h-2 rounded-full bg-red-500';
+                txt.textContent = 'غير مضبوط';
+                return;
+            }
+
+            dot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-pulse';
+            txt.textContent = 'جاري الفحص';
+
+            try {
+                const controller = new AbortController();
+                const timer = setTimeout(() => controller.abort(), 15000);
+                const res = await fetch(`${baseUrl}/health`, { signal: controller.signal });
+                clearTimeout(timer);
+
+                if (res.ok) {
+                    const info = await res.json().catch(() => ({}));
+                    dot.className = 'w-2 h-2 rounded-full bg-vant-accent';
+                    txt.textContent = 'متصل';
+                    if (info.version) {
+                        badge.textContent = `OCR v${info.version}`;
+                    }
+                    if (notifyUser) showToast(`خادم OCR متصل وجاهز (الإصدار ${info.version || '3.x'})`, 'success');
+                } else {
+                    throw new Error('HTTP ' + res.status);
+                }
+            } catch {
+                dot.className = 'w-2 h-2 rounded-full bg-red-500';
+                txt.textContent = 'في وضع السكون / غير متصل';
+                if (notifyUser) showToast('تعذر الوصول السريع للخادم؛ قد يكون في وضع السكون على Render وسيستيقظ عند رفع ملف.', 'warning');
+            }
+        }
+
+        // ---------------------------------------------------------
+        // File Drag & Drop + Validation
+        // ---------------------------------------------------------
         dropArea.addEventListener('click', () => fileInput.click());
 
         dropArea.addEventListener('dragover', (e) => {
             e.preventDefault();
-            dropArea.classList.add('border-emerald-500');
+            dropArea.classList.add('border-vant-accent');
         });
 
         dropArea.addEventListener('dragleave', () => {
-            dropArea.classList.remove('border-emerald-500');
+            dropArea.classList.remove('border-vant-accent');
         });
 
         dropArea.addEventListener('drop', (e) => {
             e.preventDefault();
-            dropArea.classList.remove('border-emerald-500');
+            dropArea.classList.remove('border-vant-accent');
             if (e.dataTransfer.files.length) {
                 handleFileSelect(e.dataTransfer.files[0]);
             }
@@ -243,49 +850,161 @@
             }
         });
 
-        const MAX_FILE_SIZE = 15 * 1024 * 1024;
-        const ALLOWED_TYPES = new Set([
-            'application/pdf', 'image/png', 'image/jpeg'
-        ]);
-        const ALLOWED_EXTENSIONS = /\\.(pdf|png|jpe?g)$/i;
-
         function handleFileSelect(file) {
             if (!file) return;
-
-            const typeAllowed = ALLOWED_TYPES.has(file.type) ||
-                ALLOWED_EXTENSIONS.test(file.name || '');
+            const typeAllowed = ALLOWED_TYPES.has(file.type) || ALLOWED_EXTENSIONS.test(file.name || '');
             if (!typeAllowed) {
-                selectedFile = null;
-                fileInput.value = '';
-                uploadBtn.disabled = true;
-                fileInfo.classList.add('hidden');
-                alert('نوع الملف غير مدعوم. اختر PDF أو PNG أو JPG/JPEG.');
+                clearSelectedFile();
+                showToast('نوع الملف غير مدعوم. اختر ملف PDF أو PNG أو JPG.', 'error');
                 return;
             }
-
             if (file.size <= 0 || file.size > MAX_FILE_SIZE) {
-                selectedFile = null;
-                fileInput.value = '';
-                uploadBtn.disabled = true;
-                fileInfo.classList.add('hidden');
-                alert('حجم الملف غير صالح أو يتجاوز الحد المسموح (15 ميجابايت).');
+                clearSelectedFile();
+                showToast('حجم الملف يتجاوز الحد المسموح (15MB).', 'error');
                 return;
             }
-
             selectedFile = file;
-            fileName.textContent = file.name;
-            fileSize.textContent = (file.size / 1024).toFixed(1) + ' KB';
+            fileNameEl.textContent = file.name;
+            fileSizeEl.textContent = (file.size / 1024).toFixed(1) + ' KB';
             fileInfo.classList.remove('hidden');
             uploadBtn.disabled = false;
         }
 
-        // Process Document
+        function clearSelectedFile() {
+            selectedFile = null;
+            fileInput.value = '';
+            fileInfo.classList.add('hidden');
+            uploadBtn.disabled = true;
+        }
+
+        // ---------------------------------------------------------
+        // Smart Arabic Normalization & Fallback Extractors
+        // ---------------------------------------------------------
+        function hasArabic(text) {
+            return /[\u0600-\u06FF]/.test(text || '');
+        }
+
+        function stripNameNoise(raw) {
+            if (!raw) return '';
+            let s = String(raw).replace(/\s+/g, ' ').trim();
+            const noisePatterns = [
+                /^(?:الاسم\s+الكامل|الإسم\s+الكامل|اسم\s+المعتمر|اسم\s+المسافر|اسم\s+الحاج|الاسم\s+رباعي|الاسم|الإسم|السم|إسم|اسم|Full\s*Name|Passenger\s*Name|Name\s*of\s*Passenger|Name)\s*[:\-–—_|/\\]*\s*/i,
+                /\s*[:\-–—_|/\\]*\s*(?:الاسم\s+الكامل|الإسم\s+الكامل|اسم\s+المعتمر|اسم\s+المسافر|اسم\s+الحاج|الاسم\s+رباعي|الاسم|الإسم|السم|إسم|اسم|Full\s*Name|Passenger\s*Name|Name\s*of\s*Passenger|Name)$/i
+            ];
+            for (let i = 0; i < 3; i++) {
+                for (const pat of noisePatterns) {
+                    s = s.replace(pat, '').trim();
+                }
+            }
+            const stopWords = new Set(['السم', 'الاسم', 'الإسم', 'اسم', 'إسم', 'name', 'fullname']);
+            return s
+                .split(' ')
+                .filter(tok => tok && !stopWords.has(tok.replace(/[:\-–—_|/\\.,]/g, '').toLowerCase()))
+                .join(' ')
+                .trim();
+        }
+
+        function processExtractedName(rawName, shouldReverseArabic) {
+            if (!rawName || rawName === 'غير متاح') return '';
+            let cleaned = stripNameNoise(rawName);
+            if (!cleaned) return '';
+            if (shouldReverseArabic && hasArabic(cleaned)) {
+                const words = cleaned.split(' ').filter(Boolean);
+                if (words.length > 1) {
+                    cleaned = words.reverse().join(' ');
+                }
+                cleaned = stripNameNoise(cleaned);
+            }
+            return cleaned;
+        }
+
+        function stripCompanyNoise(raw) {
+            if (!raw) return '';
+            let s = String(raw).replace(/\s+/g, ' ').trim();
+            const noisePatterns = [
+                /^(?:شركة\s+العمرة|مؤسسة\s+العمرة|اسم\s+الشركة|الوكيل\s+الخارجي|الوكيل\s+المحلي|الوكيل|الجهة|Umrah\s*Operator|Operator|Agent|Sponsor|Company)\s*[:\-–—_|/\\]*\s*/i,
+                /\s*[:\-–—_|/\\]*\s*(?:شركة\s+العمرة|مؤسسة\s+العمرة|اسم\s+الشركة|الوكيل\s+الخارجي|الوكيل\s+المحلي|الوكيل|الجهة|Umrah\s*Operator|Operator|Agent|Sponsor|Company)$/i,
+                /^(?:الاسم|الإسم|السم|إسم|اسم)\s*[:\-–—_|/\\]*\s*/i,
+                /\s*[:\-–—_|/\\]*\s*(?:الاسم|الإسم|السم|إسم|اسم)$/i
+            ];
+            for (let i = 0; i < 3; i++) {
+                for (const pat of noisePatterns) {
+                    s = s.replace(pat, '').trim();
+                }
+            }
+            return s;
+        }
+
+        function processCompanyText(rawCompany, rawText, shouldReverseArabic) {
+            let candidate = (rawCompany && rawCompany !== 'غير متاح') ? rawCompany : '';
+            if (!candidate && rawText) {
+                const match = rawText.match(/(?:شركة\s+العمرة|مؤسسة\s+العمرة|الوكيل\s+الخارجي|الوكيل|Umrah\s+Operator|Operator|Agent|Sponsor)\s*[:\-]?\s*([^\r\n|:]{3,75})/i)
+                    || rawText.match(/((?:شركة|مؤسسة|وكالة)\s+[^\r\n|:]{3,65})/);
+                if (match) candidate = match[1];
+            }
+            if (!candidate) return '';
+            let cleaned = stripCompanyNoise(candidate);
+            if (shouldReverseArabic && hasArabic(cleaned)) {
+                const words = cleaned.split(' ').filter(Boolean);
+                if (words.length > 1) {
+                    cleaned = words.reverse().join(' ');
+                }
+                cleaned = stripCompanyNoise(cleaned);
+            }
+            return cleaned;
+        }
+
+        function extractNationalityClientFallback(parsedNat, rawText) {
+            if (parsedNat && parsedNat !== 'غير متاح') return parsedNat;
+            const text = String(rawText || '');
+            if (!text) return '';
+
+            const countries = [
+                [/(?:يمني|اليمن|الجمهورية\s+اليمنية|YEMENI|YEMEN|\bYEM\b)/i, 'اليمن'],
+                [/(?:مصري|مصر|EGYPTIAN|EGYPT|\bEGY\b)/i, 'مصر'],
+                [/(?:سوداني|السودان|SUDANESE|SUDAN|\bSDN\b)/i, 'السودان'],
+                [/(?:أردني|اردني|الأردن|الاردن|JORDANIAN|JORDAN|\bJOR\b)/i, 'الأردن'],
+                [/(?:سوري|سوريا|SYRIAN|SYRIA|\bSYR\b)/i, 'سوريا'],
+                [/(?:عراقي|العراق|IRAQI|IRAQ|\bIRQ\b)/i, 'العراق'],
+                [/(?:فلسطيني|فلسطين|PALESTINIAN|PALESTINE|\bPSE\b)/i, 'فلسطين'],
+                [/(?:لبناني|لبنان|LEBANESE|LEBANON|\bLBN\b)/i, 'لبنان'],
+                [/(?:مغربي|المغرب|MOROCCAN|MOROCCO|\bMAR\b)/i, 'المغرب'],
+                [/(?:جزائري|الجزائر|ALGERIAN|ALGERIA|\bDZA\b)/i, 'الجزائر'],
+                [/(?:تونسي|تونس|TUNISIAN|TUNISIA|\bTUN\b)/i, 'تونس'],
+                [/(?:ليبي|ليبيا|LIBYAN|LIBYA|\bLBY\b)/i, 'ليبيا'],
+                [/(?:عماني|سلطنة\s+عمان|OMANI|OMAN|\bOMN\b)/i, 'عمان'],
+                [/(?:باكستاني|باكستان|PAKISTANI|PAKISTAN|\bPAK\b)/i, 'باكستان'],
+                [/(?:هندي|الهند|INDIAN|INDIA|\bIND\b)/i, 'الهند'],
+                [/(?:بنغلاديشي|بنغلاديش|BANGLADESHI|BANGLADESH|\bBGD\b)/i, 'بنغلاديش'],
+                [/(?:إندونيسي|اندونيسي|INDONESIAN|INDONESIA|\bIDN\b)/i, 'إندونيسيا'],
+                [/(?:تركي|تركيا|TURKISH|TURKEY|\bTUR\b)/i, 'تركيا']
+            ];
+
+            for (const [regex, label] of countries) {
+                if (regex.test(text)) return label;
+            }
+            return '';
+        }
+
+        function reverseFieldWords(inputId) {
+            const el = document.getElementById(inputId);
+            if (!el || !el.value.trim()) return;
+            const cleaned = stripNameNoise(el.value);
+            const words = cleaned.split(/\s+/).filter(Boolean);
+            if (words.length > 1) {
+                el.value = words.reverse().join(' ');
+            }
+        }
+
+        // ---------------------------------------------------------
+        // OCR API Execution (/extract-document/)
+        // ---------------------------------------------------------
         async function processDocument() {
             if (!selectedFile) return;
 
             let baseUrl = serverUrlInput.value.trim();
             if (!baseUrl) {
-                alert("يرجى إدخال رابط سيرفر Render الخاص بك أولاً!");
+                showToast('يرجى إدخال رابط خادم OCR أولاً.', 'error');
                 return;
             }
 
@@ -293,26 +1012,21 @@
             try {
                 parsedUrl = new URL(baseUrl);
             } catch {
-                alert('رابط الخادم غير صالح. أدخل رابطًا كاملًا يبدأ بـ https://');
+                showToast('رابط الخادم غير صالح. تأكد من البدء بـ https://', 'error');
                 return;
             }
 
             if (parsedUrl.protocol !== 'https:' && parsedUrl.hostname !== 'localhost' && parsedUrl.hostname !== '127.0.0.1') {
-                alert('لأمان بيانات الوثائق، استخدم HTTPS مع الخادم المنشور.');
+                showToast('لأمان البيانات، يجب استخدام HTTPS مع الخادم المنشور.', 'error');
                 return;
             }
 
+            const autoReverse = document.getElementById('autoFixArabicToggle').checked;
             baseUrl = baseUrl.replace(/\/+$/, '');
-            const apiUrl = `${baseUrl}/extract-document/`;
+            const apiUrl = `${baseUrl}/extract-document/?reverse_arabic=${autoReverse}`;
+
             const formData = new FormData();
             formData.append('file', selectedFile);
-
-            ['resName', 'resPassport', 'resReference', 'resDate', 'resExtra1'].forEach(id => {
-                document.getElementById(id).value = 'جارٍ التحليل...';
-            });
-            document.getElementById('resRawText').value = '';
-            document.getElementById('docSubtitle').textContent = 'جارٍ إرسال المستند للتحليل';
-            document.getElementById('docBadge').textContent = 'قيد المعالجة';
 
             loadingOverlay.classList.remove('hidden');
             uploadBtn.disabled = true;
@@ -340,51 +1054,762 @@
                     const rawText = data.raw_text || data.extracted_text || '';
                     document.getElementById('resRawText').value = rawText;
 
-                    // Execute Universal Client & Server Parser Logic
-                    analyzeAndDisplay(data.parsed_data, rawText);
-
+                    // Dual compatibility: check if server already normalized Arabic fields (main.py v3.2+)
+                    const serverNormalized = Boolean(data.server_normalized);
+                    populateExtractedData(data.parsed_data || {}, rawText, serverNormalized, autoReverse);
+                    showToast('تم استخراج بيانات الوثيقة بنجاح. راجع الحقول قبل الحفظ.', 'success');
                 } else {
-                    const message = typeof data.detail === 'string' ? data.detail :
-                        (typeof data.error === 'string' ? data.error : 'استجابة غير متوقعة من الخادم');
-                    alert(`تعذر معالجة الملف (HTTP ${response.status}): ${message}`);
+                    const msg = typeof data.detail === 'string' ? data.detail : (data.error || 'استجابة غير متوقعة من الخادم');
+                    showToast(`تعذر معالجة المستند: ${msg}`, 'error');
                 }
             } catch (err) {
-                const message = err && err.name === 'AbortError'
-                    ? 'انتهت مهلة الاتصال بالخادم. حاول مجددًا بعد التأكد من حالة الخادم.'
-                    : 'تعذر الاتصال بالخادم. تحقق من الرابط واتصال الإنترنت وإعدادات CORS في الخادم.';
-                alert(message);
-                console.error('Document processing error:', err);
+                const msg = (err && err.name === 'AbortError')
+                    ? 'انتهت مهلة الاتصال بالخادم (120 ثانية). أعد المحاولة الآن.'
+                    : 'تعذر الاتصال بخادم OCR. تحقق من الرابط واتصال الإنترنت.';
+                showToast(msg, 'error');
             } finally {
                 loadingOverlay.classList.add('hidden');
                 uploadBtn.disabled = !selectedFile;
             }
         }
 
-        // Advanced Universal Smart Parser Engine
-        function analyzeAndDisplay(parsed, rawText) {
-            const data = parsed && typeof parsed === 'object' ? parsed : {};
-            const get = (key) => {
-                const value = data[key];
-                return typeof value === 'string' && value.trim() ? value : 'غير متاح';
-            };
-            document.getElementById('resName').value = get('full_name');
-            document.getElementById('resPassport').value = get('passport_number');
-            document.getElementById('resReference').value = get('reference_number');
-            document.getElementById('resDate').value = get('date');
-            document.getElementById('resExtra1').value = get('document_type');
-            document.getElementById('resRawText').value = String(rawText || '');
-
-            const type = get('document_type');
-            const icon = type.includes('طيران') ? '✈️' : type.includes('تأشيرة') ? '🕋' : '📄';
-            document.getElementById('docIcon').textContent = icon;
-            document.getElementById('docTypeTitle').textContent = type;
-            document.getElementById('docSubtitle').textContent = 'تم استخراج البيانات من الخادم؛ راجعها مع المستند الأصلي';
+        function populateExtractedData(parsed, rawText, serverNormalized, autoReverse) {
+            const docType = parsed.document_type || 'مستند سفر';
             const badge = document.getElementById('docBadge');
-            badge.textContent = 'تحتاج مراجعة بشرية';
-            badge.className = 'text-xs bg-amber-950 text-amber-300 border border-amber-800 font-bold px-3 py-1 rounded-full';
-            document.getElementById('lblReference').textContent = type.includes('تأشيرة') ? 'رقم التأشيرة' : 'رقم التذكرة / المرجع';
-            document.getElementById('lblDate').textContent = 'التاريخ المستخرج';
-            document.getElementById('lblExtra1').textContent = 'نوع المستند';
+
+            // If serverNormalized is true, server already reversed Arabic words; only strip residual noise without re-reversing
+            const shouldReverseClientSide = !serverNormalized && autoReverse;
+
+            const finalName = processExtractedName(parsed.full_name, shouldReverseClientSide);
+            const finalPassport = (parsed.passport_number && parsed.passport_number !== 'غير متاح') ? parsed.passport_number : '';
+            const finalReference = (parsed.reference_number && parsed.reference_number !== 'غير متاح') ? parsed.reference_number : '';
+            const finalDate = (parsed.date && parsed.date !== 'غير متاح') ? parsed.date : '';
+            const finalNationality = extractNationalityClientFallback(parsed.nationality, rawText);
+            const finalCompany = processCompanyText(parsed.extra1, rawText, shouldReverseClientSide);
+
+            if (docType.includes('تأشيرة') || rawText.includes('Visa No') || rawText.includes('المملكة العربية السعودية')) {
+                document.getElementById('docTypeTitle').textContent = 'تأشيرة عمرة مستخرجة';
+                badge.textContent = 'تأشيرة عمرة';
+                badge.className = 'text-[11px] font-mono bg-emerald-950/70 text-emerald-400 px-2.5 py-1 rounded border border-emerald-800/70';
+                document.getElementById('lblReference').textContent = 'رقم التأشيرة (Visa No)';
+                document.getElementById('lblDate').textContent = 'تاريخ الإصدار';
+                document.getElementById('lblExtra1').textContent = 'شركة العمرة / الوكيل';
+            } else if (docType.includes('طيران') || rawText.includes('Yemenia') || rawText.includes('PASSENGER NAME')) {
+                document.getElementById('docTypeTitle').textContent = 'تذكرة طيران دولية';
+                badge.textContent = 'تذكرة طيران';
+                badge.className = 'text-[11px] font-mono bg-blue-950/70 text-blue-400 px-2.5 py-1 rounded border border-blue-800/70';
+                document.getElementById('lblReference').textContent = 'رقم التذكرة (Ticket No)';
+                document.getElementById('lblDate').textContent = 'تاريخ الرحلة';
+                document.getElementById('lblExtra1').textContent = 'شركة الطيران / الوكيل';
+            } else {
+                document.getElementById('docTypeTitle').textContent = docType;
+                badge.textContent = 'وثيقة سفر';
+                badge.className = 'text-[11px] font-mono bg-amber-950/70 text-amber-400 px-2.5 py-1 rounded border border-amber-800/70';
+            }
+
+            document.getElementById('resName').value = finalName;
+            document.getElementById('resPassport').value = finalPassport;
+            document.getElementById('resReference').value = finalReference;
+            document.getElementById('resDate').value = finalDate;
+            document.getElementById('resNationality').value = finalNationality;
+            document.getElementById('resExtra1').value = finalCompany;
+        }
+
+        function resetOcrForm() {
+            ['resName', 'resPassport', 'resReference', 'resDate', 'resNationality', 'resExtra1', 'regEntryDate', 'regPhone', 'resRawText'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            document.getElementById('docBadge').textContent = 'بانتظار المستند';
+            document.getElementById('docBadge').className = 'text-[11px] font-mono bg-vant-elevated text-vant-muted px-2.5 py-1 rounded border border-vant-border';
+            clearSelectedFile();
+        }
+
+        // ---------------------------------------------------------
+        // Pilgrim Registration & 90-Day Calculation Engine
+        // ---------------------------------------------------------
+        function computeStayMetrics(pilgrim) {
+            if (pilgrim.status === 'DEPARTED') {
+                return {
+                    state: 'DEPARTED',
+                    remainingDays: null,
+                    expectedExitDate: pilgrim.entry_date ? addDaysISO(pilgrim.entry_date, 90) : '—',
+                    badgeText: 'غادر المملكة',
+                    badgeClass: 'bg-slate-800/80 text-slate-300 border-slate-700',
+                    stageCode: null
+                };
+            }
+
+            if (!pilgrim.entry_date) {
+                return {
+                    state: 'PENDING',
+                    remainingDays: null,
+                    expectedExitDate: 'بانتظار الدخول',
+                    badgeText: 'بانتظار الدخول',
+                    badgeClass: 'bg-slate-900 text-slate-400 border-slate-700',
+                    stageCode: null
+                };
+            }
+
+            const entry = new Date(pilgrim.entry_date + 'T00:00:00');
+            const expectedExit = new Date(entry.getTime() + 90 * 24 * 60 * 60 * 1000);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const diffMs = expectedExit - today;
+            const remainingDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+            const expectedExitStr = expectedExit.toISOString().slice(0, 10);
+
+            if (remainingDays < 0) {
+                return {
+                    state: 'OVERSTAYED',
+                    remainingDays,
+                    expectedExitDate: expectedExitStr,
+                    badgeText: `متجاوز (${Math.abs(remainingDays)} يوم)`,
+                    badgeClass: 'bg-purple-950/80 text-purple-300 border-purple-700',
+                    stageCode: 'STAGE_1'
+                };
+            }
+            if (remainingDays <= 1) {
+                return {
+                    state: 'CRITICAL',
+                    remainingDays,
+                    expectedExitDate: expectedExitStr,
+                    badgeText: 'طارئ (24 ساعة)',
+                    badgeClass: 'bg-red-950/90 text-red-300 border-red-600',
+                    stageCode: 'STAGE_1'
+                };
+            }
+            if (remainingDays <= 3) {
+                return {
+                    state: 'CRITICAL',
+                    remainingDays,
+                    expectedExitDate: expectedExitStr,
+                    badgeText: 'حرج (≤ 3 أيام)',
+                    badgeClass: 'bg-red-950/70 text-red-400 border-red-800',
+                    stageCode: 'STAGE_3'
+                };
+            }
+            if (remainingDays <= 14) {
+                return {
+                    state: 'APPROACHING',
+                    remainingDays,
+                    expectedExitDate: expectedExitStr,
+                    badgeText: 'مرتفع (≤ 14 يوماً)',
+                    badgeClass: 'bg-orange-950/70 text-orange-400 border-orange-800',
+                    stageCode: 'STAGE_7'
+                };
+            }
+            if (remainingDays <= 30) {
+                return {
+                    state: 'STAGE_15_30',
+                    remainingDays,
+                    expectedExitDate: expectedExitStr,
+                    badgeText: 'متوسط (15-30 يوماً)',
+                    badgeClass: 'bg-yellow-950/70 text-yellow-400 border-yellow-800',
+                    stageCode: remainingDays <= 15 ? 'STAGE_15' : 'STAGE_30'
+                };
+            }
+            return {
+                state: 'SAFE',
+                remainingDays,
+                expectedExitDate: expectedExitStr,
+                badgeText: 'آمن (> 30 يوماً)',
+                badgeClass: 'bg-emerald-950/70 text-emerald-400 border-emerald-800',
+                stageCode: null
+            };
+        }
+
+        function addDaysISO(dateStr, days) {
+            const d = new Date(dateStr + 'T00:00:00');
+            d.setDate(d.getDate() + days);
+            return d.toISOString().slice(0, 10);
+        }
+
+        function saveFromOcrCard() {
+            const fullName = stripNameNoise(document.getElementById('resName').value);
+            const passportNumber = document.getElementById('resPassport').value.trim().toUpperCase();
+            const visaNumber = document.getElementById('resReference').value.trim();
+            const issueDate = document.getElementById('resDate').value.trim();
+            const nationality = document.getElementById('resNationality').value.trim() || 'غير محدد';
+            const operator = stripCompanyNoise(document.getElementById('resExtra1').value) || 'غير محدد';
+            const entryDate = document.getElementById('regEntryDate').value.trim();
+            const phone = document.getElementById('regPhone').value.trim();
+
+            if (!fullName || fullName === 'غير متاح') {
+                showToast('يرجى إدخال اسم المعتمر قبل الحفظ.', 'error');
+                document.getElementById('resName').focus();
+                return;
+            }
+            if (!passportNumber || passportNumber === 'غير متاح') {
+                showToast('يرجى إدخال رقم جواز السفر قبل الحفظ.', 'error');
+                document.getElementById('resPassport').focus();
+                return;
+            }
+
+            // Duplicate check on passport_number
+            const existingIndex = pilgrims.findIndex(p => p.passport_number.toUpperCase() === passportNumber);
+            if (existingIndex !== -1) {
+                const existing = pilgrims[existingIndex];
+                existing.full_name = fullName;
+                existing.visa_number = visaNumber || existing.visa_number;
+                existing.issue_date = issueDate || existing.issue_date;
+                existing.nationality = nationality || existing.nationality;
+                existing.operator = operator || existing.operator;
+                if (entryDate) {
+                    existing.entry_date = entryDate;
+                    existing.status = 'IN_KINGDOM';
+                }
+                if (phone) existing.phone = phone;
+                saveToStorage();
+                renderAll();
+                showToast(`تم تحديث بيانات المعتمر المسجل مسبقاً (${passportNumber}).`, 'info');
+                switchView('registry');
+                return;
+            }
+
+            const newRecord = {
+                id: 'PLG-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+                full_name: fullName,
+                passport_number: passportNumber,
+                nationality,
+                visa_number: visaNumber || '—',
+                issue_date: issueDate || '—',
+                operator,
+                entry_date: entryDate || '',
+                actual_exit_date: '',
+                phone: phone || '',
+                status: entryDate ? 'IN_KINGDOM' : 'PENDING',
+                created_at: new Date().toISOString()
+            };
+
+            pilgrims.unshift(newRecord);
+            saveToStorage();
+            renderAll();
+            resetOcrForm();
+            showToast(entryDate ? 'تم تسجيل المعتمر وتفعيل عداد الـ 90 يوماً.' : 'تم حفظ المعتمر (بانتظار تحديد تاريخ الدخول لاحقاً).', 'success');
+            switchView('registry');
+        }
+
+        // ---------------------------------------------------------
+        // Rendering KPIs, Registry Table & Alerts Log
+        // ---------------------------------------------------------
+        function renderAll() {
+            updateKPIs();
+            renderPilgrimsTable();
+            renderAlertsLog();
+        }
+
+        function updateKPIs() {
+            let pending = 0, active = 0, approaching = 0, critical = 0, overstayed = 0;
+            let s30 = 0, s15 = 0, s7 = 0, s3 = 0, s1 = 0;
+
+            pilgrims.forEach(p => {
+                const m = computeStayMetrics(p);
+                if (m.state === 'PENDING') {
+                    pending++;
+                } else if (m.state !== 'DEPARTED') {
+                    active++;
+                    if (m.remainingDays !== null) {
+                        if (m.remainingDays < 0) {
+                            overstayed++;
+                            s1++;
+                        } else if (m.remainingDays <= 1) {
+                            critical++;
+                            approaching++;
+                            s1++;
+                        } else if (m.remainingDays <= 3) {
+                            critical++;
+                            approaching++;
+                            s3++;
+                        } else if (m.remainingDays <= 7) {
+                            approaching++;
+                            s7++;
+                        } else if (m.remainingDays <= 15) {
+                            approaching++;
+                            s15++;
+                        } else if (m.remainingDays <= 30) {
+                            s30++;
+                        }
+                    }
+                }
+            });
+
+            document.getElementById('kpiTotal').textContent = pilgrims.length;
+            document.getElementById('kpiPending').textContent = pending;
+            document.getElementById('kpiActive').textContent = active;
+            document.getElementById('kpiApproaching').textContent = approaching;
+            document.getElementById('kpiCritical').textContent = critical;
+            document.getElementById('kpiOverstayed').textContent = overstayed;
+
+            document.getElementById('navCountBadge').textContent = pilgrims.length;
+            const critBadge = document.getElementById('navCriticalBadge');
+            const urgentTotal = critical + overstayed;
+            if (urgentTotal > 0) {
+                critBadge.textContent = urgentTotal;
+                critBadge.classList.remove('hidden');
+            } else {
+                critBadge.classList.add('hidden');
+            }
+
+            document.getElementById('stageCount30').textContent = s30;
+            document.getElementById('stageCount15').textContent = s15;
+            document.getElementById('stageCount7').textContent = s7;
+            document.getElementById('stageCount3').textContent = s3;
+            document.getElementById('stageCount1').textContent = s1;
+        }
+
+        function setFilter(filterKey) {
+            currentFilter = filterKey;
+            document.querySelectorAll('.flt-btn').forEach(btn => {
+                btn.className = 'flt-btn text-xs px-3 py-1.5 rounded bg-vant-elevated text-vant-muted hover:text-white border border-vant-border transition';
+            });
+            const activeBtn = document.getElementById(`flt-${filterKey}`);
+            if (activeBtn) {
+                activeBtn.className = 'flt-btn text-xs px-3 py-1.5 rounded bg-vant-accent text-vant-bg font-semibold transition';
+            }
+            renderPilgrimsTable();
+        }
+
+        function filterByStage(stageKey) {
+            switchView('registry');
+            if (stageKey === 'STAGE_30' || stageKey === 'STAGE_15') {
+                setFilter('IN_KINGDOM');
+            } else if (stageKey === 'STAGE_7') {
+                setFilter('APPROACHING');
+            } else {
+                setFilter('CRITICAL');
+            }
+        }
+
+        function renderPilgrimsTable() {
+            const tbody = document.getElementById('pilgrimsTableBody');
+            const query = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+
+            const filtered = pilgrims.filter(p => {
+                const m = computeStayMetrics(p);
+                if (currentFilter === 'PENDING' && m.state !== 'PENDING') return false;
+                if (currentFilter === 'IN_KINGDOM' && (m.state === 'PENDING' || m.state === 'DEPARTED')) return false;
+                if (currentFilter === 'APPROACHING' && !(m.remainingDays !== null && m.remainingDays >= 0 && m.remainingDays <= 15 && m.state !== 'DEPARTED')) return false;
+                if (currentFilter === 'CRITICAL' && !(m.remainingDays !== null && m.remainingDays <= 3 && m.state !== 'DEPARTED')) return false;
+                if (currentFilter === 'OVERSTAYED' && m.state !== 'OVERSTAYED') return false;
+                if (currentFilter === 'DEPARTED' && m.state !== 'DEPARTED') return false;
+
+                if (query) {
+                    const hay = `${p.full_name} ${p.passport_number} ${p.visa_number} ${p.nationality} ${p.operator}`.toLowerCase();
+                    return hay.includes(query);
+                }
+                return true;
+            });
+
+            if (!filtered.length) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="py-12 text-center text-vant-muted text-xs">
+                            لا توجد سجلات مطابقة في هذا العرض حالياً.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(p => {
+                const m = computeStayMetrics(p);
+                let stayDisplay = '';
+                if (m.state === 'PENDING') {
+                    stayDisplay = `
+                        <button type="button" onclick="openEntryDateModal('${p.id}')"
+                                class="text-[11px] text-vant-accent hover:underline font-medium">
+                            + تحديد تاريخ الدخول وتفعيل العداد
+                        </button>
+                    `;
+                } else if (m.state === 'DEPARTED') {
+                    stayDisplay = `<span class="font-mono text-[11px] text-slate-400">غادر بتاريخ: ${escapeHtml(p.actual_exit_date || '—')}</span>`;
+                } else {
+                    const pct = Math.min(100, Math.max(0, Math.round(((90 - m.remainingDays) / 90) * 100)));
+                    const barColor = m.remainingDays <= 3 ? 'bg-red-500' : (m.remainingDays <= 15 ? 'bg-amber-400' : 'bg-vant-accent');
+                    stayDisplay = `
+                        <div class="w-36">
+                            <div class="flex justify-between font-mono text-[11px] mb-1">
+                                <span class="text-white font-semibold">${m.remainingDays >= 0 ? m.remainingDays + ' يوم متبقي' : 'تجاوز ' + Math.abs(m.remainingDays) + ' يوم'}</span>
+                                <span class="text-vant-muted">${pct}%</span>
+                            </div>
+                            <div class="w-full h-1.5 bg-vant-bg rounded overflow-hidden border border-vant-border">
+                                <div class="h-full ${barColor}" style="width:${pct}%"></div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                const departButton = (m.state !== 'DEPARTED' && m.state !== 'PENDING')
+                    ? `<button type="button" onclick="markPilgrimDeparted('${p.id}')" class="vant-btn-secondary text-[11px] px-2 py-1 rounded" title="تسجيل مغادرة المملكة">مغادرة</button>`
+                    : '';
+
+                return `
+                    <tr class="hover:bg-vant-elevated/40 transition">
+                        <td class="py-3 px-4">
+                            <div class="font-semibold text-white">${escapeHtml(p.full_name)}</div>
+                            <div class="text-[11px] text-vant-muted mt-0.5">${escapeHtml(p.operator || '—')}</div>
+                        </td>
+                        <td class="py-3 px-4">
+                            <div class="font-mono text-white" dir="ltr">${escapeHtml(p.passport_number)}</div>
+                            <div class="text-[11px] text-vant-muted mt-0.5">${escapeHtml(p.nationality || '—')}</div>
+                        </td>
+                        <td class="py-3 px-4 font-mono text-slate-300" dir="ltr">
+                            <div>${escapeHtml(p.visa_number || '—')}</div>
+                            <div class="text-[10px] text-vant-muted">${escapeHtml(p.issue_date || '')}</div>
+                        </td>
+                        <td class="py-3 px-4 font-mono text-[11px]">
+                            ${p.entry_date
+                                ? `<div class="text-slate-200">الدخول: ${escapeHtml(p.entry_date)}</div>
+                                   <div class="text-vant-muted">الانتهاء: ${escapeHtml(m.expectedExitDate)}</div>`
+                                : `<span class="text-vant-muted">غير محدد بعد</span>`
+                            }
+                        </td>
+                        <td class="py-3 px-4">${stayDisplay}</td>
+                        <td class="py-3 px-4">
+                            <span class="inline-block text-[11px] font-mono px-2.5 py-0.5 rounded border ${m.badgeClass}">
+                                ${escapeHtml(m.badgeText)}
+                            </span>
+                        </td>
+                        <td class="py-3 px-4 text-left">
+                            <div class="flex items-center justify-end gap-1.5">
+                                <button type="button" onclick="sendWhatsAppAlert('${p.id}')"
+                                        class="bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-800/70 text-[11px] px-2.5 py-1 rounded transition">
+                                    واتساب
+                                </button>
+                                ${departButton}
+                                <button type="button" onclick="openPilgrimModal('${p.id}')"
+                                        class="vant-btn-secondary text-[11px] px-2 py-1 rounded">
+                                    تعديل
+                                </button>
+                                <button type="button" onclick="deletePilgrim('${p.id}')"
+                                        class="vant-btn-secondary text-[11px] px-2 py-1 rounded text-red-400 hover:border-red-500">
+                                    حذف
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // ---------------------------------------------------------
+        // Quick Entry Date Activation & Departure Logging
+        // ---------------------------------------------------------
+        function openEntryDateModal(pilgrimId) {
+            const p = pilgrims.find(item => item.id === pilgrimId);
+            if (!p) return;
+            document.getElementById('quickEntryPilgrimId').value = p.id;
+            document.getElementById('quickEntryPilgrimName').textContent = p.full_name + ' — ' + p.passport_number;
+            document.getElementById('quickEntryDateInput').value = new Date().toISOString().slice(0, 10);
+            document.getElementById('entryDateModal').classList.remove('hidden');
+        }
+
+        function closeEntryDateModal() {
+            document.getElementById('entryDateModal').classList.add('hidden');
+        }
+
+        function confirmQuickEntryDate() {
+            const id = document.getElementById('quickEntryPilgrimId').value;
+            const dateVal = document.getElementById('quickEntryDateInput').value;
+            if (!dateVal) {
+                showToast('يرجى اختيار تاريخ الدخول.', 'error');
+                return;
+            }
+            const p = pilgrims.find(item => item.id === id);
+            if (p) {
+                p.entry_date = dateVal;
+                p.status = 'IN_KINGDOM';
+                saveToStorage();
+                renderAll();
+                showToast(`تم تفعيل عداد الـ 90 يوماً للمعتمر ${p.full_name}.`, 'success');
+            }
+            closeEntryDateModal();
+        }
+
+        function markPilgrimDeparted(pilgrimId) {
+            const p = pilgrims.find(item => item.id === pilgrimId);
+            if (!p) return;
+            p.status = 'DEPARTED';
+            p.actual_exit_date = new Date().toISOString().slice(0, 10);
+            saveToStorage();
+            renderAll();
+            showToast(`تم تسجيل مغادرة المعتمر ${p.full_name} بنجاح.`, 'success');
+        }
+
+        // ---------------------------------------------------------
+        // Add / Edit Pilgrim Modal
+        // ---------------------------------------------------------
+        function openPilgrimModal(pilgrimId = null) {
+            const modal = document.getElementById('pilgrimModal');
+            document.getElementById('editPilgrimId').value = pilgrimId || '';
+
+            if (pilgrimId) {
+                const p = pilgrims.find(item => item.id === pilgrimId);
+                if (!p) return;
+                document.getElementById('modalTitle').textContent = 'تعديل بيانات المعتمر';
+                document.getElementById('modalName').value = p.full_name || '';
+                document.getElementById('modalPassport').value = p.passport_number || '';
+                document.getElementById('modalNationality').value = p.nationality || '';
+                document.getElementById('modalVisa').value = p.visa_number === '—' ? '' : (p.visa_number || '');
+                document.getElementById('modalPhone').value = p.phone || '';
+                document.getElementById('modalOperator').value = p.operator === '—' ? '' : (p.operator || '');
+                document.getElementById('modalEntryDate').value = p.entry_date || '';
+                document.getElementById('modalStatus').value = p.status === 'DEPARTED' ? 'DEPARTED' : 'AUTO';
+            } else {
+                document.getElementById('modalTitle').textContent = 'إضافة معتمر جديد يدوياً';
+                ['modalName', 'modalPassport', 'modalNationality', 'modalVisa', 'modalPhone', 'modalOperator', 'modalEntryDate'].forEach(id => {
+                    document.getElementById(id).value = '';
+                });
+                document.getElementById('modalStatus').value = 'AUTO';
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closePilgrimModal() {
+            document.getElementById('pilgrimModal').classList.add('hidden');
+        }
+
+        function saveModalPilgrim() {
+            const id = document.getElementById('editPilgrimId').value;
+            const fullName = stripNameNoise(document.getElementById('modalName').value);
+            const passportNumber = document.getElementById('modalPassport').value.trim().toUpperCase();
+            const nationality = document.getElementById('modalNationality').value.trim() || 'غير محدد';
+            const visaNumber = document.getElementById('modalVisa').value.trim() || '—';
+            const phone = document.getElementById('modalPhone').value.trim();
+            const operator = stripCompanyNoise(document.getElementById('modalOperator').value) || 'غير محدد';
+            const entryDate = document.getElementById('modalEntryDate').value.trim();
+            const statusChoice = document.getElementById('modalStatus').value;
+
+            if (!fullName || !passportNumber) {
+                showToast('الاسم الكامل ورقم الجواز حقلان إلزاميان.', 'error');
+                return;
+            }
+
+            const computedStatus = statusChoice === 'DEPARTED'
+                ? 'DEPARTED'
+                : (entryDate ? 'IN_KINGDOM' : 'PENDING');
+
+            if (id) {
+                const idx = pilgrims.findIndex(item => item.id === id);
+                if (idx !== -1) {
+                    pilgrims[idx] = {
+                        ...pilgrims[idx],
+                        full_name: fullName,
+                        passport_number: passportNumber,
+                        nationality,
+                        visa_number: visaNumber,
+                        phone,
+                        operator,
+                        entry_date: entryDate,
+                        status: computedStatus,
+                        actual_exit_date: computedStatus === 'DEPARTED'
+                            ? (pilgrims[idx].actual_exit_date || new Date().toISOString().slice(0, 10))
+                            : ''
+                    };
+                }
+                showToast('تم حفظ التعديلات بنجاح.', 'success');
+            } else {
+                pilgrims.unshift({
+                    id: 'PLG-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+                    full_name: fullName,
+                    passport_number: passportNumber,
+                    nationality,
+                    visa_number: visaNumber,
+                    issue_date: '—',
+                    operator,
+                    entry_date: entryDate,
+                    actual_exit_date: computedStatus === 'DEPARTED' ? new Date().toISOString().slice(0, 10) : '',
+                    phone,
+                    status: computedStatus,
+                    created_at: new Date().toISOString()
+                });
+                showToast('تمت إضافة المعتمر إلى السجل.', 'success');
+            }
+
+            saveToStorage();
+            renderAll();
+            closePilgrimModal();
+        }
+
+        function deletePilgrim(pilgrimId) {
+            const idx = pilgrims.findIndex(item => item.id === pilgrimId);
+            if (idx === -1) return;
+            const removed = pilgrims.splice(idx, 1)[0];
+            saveToStorage();
+            renderAll();
+            showToast(`تم حذف سجل المعتمر ${removed.full_name}.`, 'info');
+        }
+
+        // ---------------------------------------------------------
+        // WhatsApp Notification Dispatch & Alerts Log
+        // ---------------------------------------------------------
+        function sendWhatsAppAlert(pilgrimId) {
+            const p = pilgrims.find(item => item.id === pilgrimId);
+            if (!p) return;
+
+            const m = computeStayMetrics(p);
+            let alertType = 'GENERAL';
+            let message = '';
+
+            if (m.state === 'PENDING') {
+                alertType = 'PRE_ENTRY';
+                message = `السلام عليكم، المعتمر الكريم ${p.full_name} (جواز رقم: ${p.passport_number}). تم تسجيل بيانات تأشيرتكم (${p.visa_number}) لدى ${p.operator}. يرجى إشعارنا فور دخول المملكة لتفعيل متابعة الإقامة.`;
+            } else if (m.remainingDays !== null && m.remainingDays <= 1) {
+                alertType = '1_DAY_EMERGENCY';
+                message = `تنبيه طارئ وعاجل: المعتمر ${p.full_name} (جواز: ${p.passport_number})، تنتهي فترة الإقامة النظامية (90 يوماً) بتاريخ ${m.expectedExitDate}. يرجى التوجه الفوري إلى المطار/المنفذ لتفادي المخالفات النظامية.`;
+            } else if (m.remainingDays !== null && m.remainingDays <= 3) {
+                alertType = '3_DAYS_CRITICAL';
+                message = `تنبيه هام وعاجل: المعتمر ${p.full_name} (جواز: ${p.passport_number})، تبقى ${m.remainingDays} أيام فقط على انتهاء فترة الإقامة النظامية بتاريخ ${m.expectedExitDate}. يرجى تأكيد جاهزية المغادرة النهائية.`;
+            } else if (m.remainingDays !== null && m.remainingDays <= 14) {
+                alertType = '7_DAYS_HIGH';
+                message = `تذكير استعداد للمغادرة: المعتمر ${p.full_name} (جواز: ${p.passport_number})، تبقى ${m.remainingDays} يوماً على انتهاء فترة الإقامة النظامية (${m.expectedExitDate}). يرجى التنسيق مع المشرف لتأكيد بيانات رحلة العودة.`;
+            } else {
+                alertType = '15_30_DAYS_ROUTINE';
+                message = `متابعة إقامة العمرة: المعتمر الكريم ${p.full_name} (جواز: ${p.passport_number})، تاريخ انتهاء الإقامة النظامية هو ${m.expectedExitDate} (متبقي ${m.remainingDays} يوماً). يرجى التأكد من حجز تذكرة العودة مبكراً.`;
+            }
+
+            const cleanPhone = (p.phone || '').replace(/[^\d]/g, '');
+            const waUrl = cleanPhone
+                ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`
+                : `https://wa.me/?text=${encodeURIComponent(message)}`;
+
+            alertsLog.unshift({
+                id: 'ALT-' + Date.now(),
+                pilgrim_name: p.full_name,
+                passport_number: p.passport_number,
+                alert_type: alertType,
+                channel: 'WhatsApp',
+                sent_at: new Date().toLocaleString('ar-SA'),
+                status: 'SENT'
+            });
+
+            saveToStorage();
+            renderAlertsLog();
+            window.open(waUrl, '_blank', 'noopener,noreferrer');
+        }
+
+        function renderAlertsLog() {
+            const tbody = document.getElementById('alertsLogTableBody');
+            if (!alertsLog.length) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="py-10 text-center text-vant-muted text-xs">
+                            لم يتم إرسال أي إشعارات بعد.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = alertsLog.map(log => `
+                <tr class="hover:bg-vant-elevated/40 transition">
+                    <td class="py-2.5 px-4 font-mono text-[11px] text-vant-muted">${escapeHtml(log.sent_at)}</td>
+                    <td class="py-2.5 px-4 font-medium text-white">${escapeHtml(log.pilgrim_name)}</td>
+                    <td class="py-2.5 px-4 font-mono text-slate-300" dir="ltr">${escapeHtml(log.passport_number)}</td>
+                    <td class="py-2.5 px-4 font-mono text-[11px] text-vant-accent">${escapeHtml(log.alert_type)}</td>
+                    <td class="py-2.5 px-4 font-mono text-[11px]">${escapeHtml(log.channel)}</td>
+                    <td class="py-2.5 px-4">
+                        <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-950/60 text-emerald-400 border border-emerald-800/60">
+                            ${escapeHtml(log.status)}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function clearAlertsLog() {
+            alertsLog = [];
+            saveToStorage();
+            renderAlertsLog();
+            showToast('تم مسح سجل الإشعارات.', 'info');
+        }
+
+        // ---------------------------------------------------------
+        // Backup & Export Services (CSV / JSON Export / JSON Import)
+        // ---------------------------------------------------------
+        function exportCSV() {
+            if (!pilgrims.length) {
+                showToast('لا توجد بيانات لتصديرها.', 'warning');
+                return;
+            }
+            const headers = ['الاسم الكامل', 'رقم الجواز', 'الجنسية', 'رقم التأشيرة', 'شركة العمرة', 'تاريخ الدخول', 'تاريخ الانتهاء المتوقع', 'الأيام المتبقية', 'الحالة', 'رقم الواتساب'];
+            const rows = pilgrims.map(p => {
+                const m = computeStayMetrics(p);
+                return [
+                    p.full_name,
+                    p.passport_number,
+                    p.nationality,
+                    p.visa_number,
+                    p.operator,
+                    p.entry_date || 'بانتظار الدخول',
+                    m.expectedExitDate,
+                    m.remainingDays !== null ? m.remainingDays : '—',
+                    m.badgeText,
+                    p.phone || ''
+                ].map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',');
+            });
+
+            const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `vant-umrah-track-${new Date().toISOString().slice(0, 10)}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('تم تصدير ملف CSV بنجاح.', 'success');
+        }
+
+        function exportJSON() {
+            if (!pilgrims.length && !alertsLog.length) {
+                showToast('لا توجد بيانات لتصديرها.', 'warning');
+                return;
+            }
+            const payload = {
+                service: 'VANT Umrah Track',
+                exported_at: new Date().toISOString(),
+                pilgrims,
+                alerts_log: alertsLog
+            };
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `vant-umrah-backup-${new Date().toISOString().slice(0, 10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('تم تصدير النسخة الاحتياطية (JSON) بنجاح.', 'success');
+        }
+
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    const incomingPilgrims = Array.isArray(parsed) ? parsed : (parsed.pilgrims || []);
+                    const incomingAlerts = Array.isArray(parsed.alerts_log) ? parsed.alerts_log : [];
+
+                    if (!Array.isArray(incomingPilgrims)) {
+                        throw new Error('Invalid format');
+                    }
+
+                    pilgrims = incomingPilgrims;
+                    if (incomingAlerts.length) alertsLog = incomingAlerts;
+                    saveToStorage();
+                    renderAll();
+                    showToast(`تم استيراد ${pilgrims.length} سجل بنجاح.`, 'success');
+                } catch {
+                    showToast('ملف النسخة الاحتياطية غير صالح.', 'error');
+                } finally {
+                    event.target.value = '';
+                }
+            };
+            reader.readAsText(file);
         }
     </script>
 </body>
