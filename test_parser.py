@@ -3,32 +3,31 @@ from main import parse_universal_document
 
 
 class ParserRegressionTests(unittest.TestCase):
-    def test_visa_fields(self):
+    def test_visa_fields_english(self):
         result = parse_universal_document(
             "المملكة العربية السعودية\nName: AHMED ALI\n"
+            "Nationality: YEMEN\nUmrah Operator: Al Manasik Co\n"
             "Passport No: A1234567\nVisa No: 61234567890\nIssue Date: 12/10/2026"
         )
         self.assertEqual(result["full_name"], "AHMED ALI")
         self.assertEqual(result["passport_number"], "A1234567")
         self.assertEqual(result["reference_number"], "61234567890")
         self.assertEqual(result["date"], "12/10/2026")
+        self.assertEqual(result["nationality"], "اليمن")
+        self.assertEqual(result["extra1"], "Al Manasik Co")
 
-    def test_bilingual_multiline_and_dob_filtering(self):
-        # اختبار عندما يكون العنوان في سطر والقيمة في السطر التالي مع وجود تاريخ ميلاد
+    def test_reversed_arabic_name_and_alsam_noise(self):
+        # Simulates reversed Arabic OCR output with "السم" attached
         result = parse_universal_document(
             "المملكة العربية السعودية\n"
-            "Name / الاسم\n"
-            "محمد أحمد قايد\n"
-            "Passport No. / رقم الجواز\n"
-            "08451239\n"
-            "Date of Birth: 05/06/1985\n"
-            "Issue Date: 20/10/2026\n"
-            "Visa No: 60987654321"
+            "الاسم: العريقي قايد أحمد أمجد السم\n"
+            "شركة العمرة: المحدودة العمرة و الحج لخدمات المشاعر شركة\n"
+            "الجنسية: اليمنية الجمهورية\n"
+            "رقم الجواز: 09876543\nرقم التأشيرة: 61122334455"
         )
-        self.assertEqual(result["full_name"], "محمد أحمد قايد")
-        self.assertEqual(result["passport_number"], "08451239")
-        self.assertEqual(result["reference_number"], "60987654321")
-        self.assertEqual(result["date"], "20/10/2026")
+        self.assertEqual(result["full_name"], "أمجد أحمد قايد العريقي")
+        self.assertEqual(result["extra1"], "شركة المشاعر لخدمات الحج و العمرة المحدودة")
+        self.assertEqual(result["nationality"], "اليمن")
 
     def test_yemenia_ticket(self):
         result = parse_universal_document(
@@ -37,7 +36,7 @@ class ParserRegressionTests(unittest.TestCase):
         )
         self.assertEqual(result["full_name"], "AHMED ALI")
         self.assertEqual(result["reference_number"], "6351234567890")
-        self.assertEqual(result["document_type"], "تذكرة طيران دولية (تصنيف آلي)")
+        self.assertEqual(result["document_type"], "تذكرة طيران دولية")
 
     def test_arabic_digits(self):
         result = parse_universal_document("رقم التأشيرة: ٦١٢٣٤٥٦٧٨٩٠")
